@@ -15,6 +15,7 @@ use App\Models\PaymentItem;
 use App\Models\Offer;
 use App\Models\RentalPrice;
 use App\Models\Order;
+use App\Models\PaymentLog;
 use App\Models\DigilockerDocument;
 use App\Models\AsignedVehicle;
 use App\Models\UserTermsConditions;
@@ -1992,7 +1993,6 @@ class AuthController extends Controller
             ], 400);
     }
     protected function bookingRenewICICIPayment($merchantTxnNo,$txnID,$paymentMode,$paymentDateTime){
-        $status = true;
         $OrderMerchantNumber = OrderMerchantNumber::where('merchantTxnNo',$merchantTxnNo)->first();
         
         if(!$OrderMerchantNumber){
@@ -2001,7 +2001,8 @@ class AuthController extends Controller
                 'message' => 'No data found by this merchantTxnNo.',
             ], 400);
         }
-        $OrderMerchantNumber = OrderMerchantNumber::where('merchantTxnNo',$merchantTxnNo)->first();
+
+        $status = true;
         $order = Order::with('subscription')->find($OrderMerchantNumber->order_id);
         DB::beginTransaction();
         try{
@@ -3085,8 +3086,22 @@ class AuthController extends Controller
     public function ICICIThankyou(Request $request)
     {
         $response = $request->all(); // Get all data
+          PaymentLog::create([
+            'gateway' => 'ICICI',
+            'transaction_id' => $response['txnID'] ?? null,
+            'merchant_txn_no' => $response['merchantTxnNo'] ?? null,
+            'response_payload' => json_encode($response),
+            'status' => $response['responseCode'] ?? null,
+            'message' => $response['respDescription'] ?? null,
+        ]);
         $merchantTxnNo = $response['merchantTxnNo'] ?? null;
 
+        $payment = Payment::where('icici_merchantTxnNo', $merchantTxnNo)->first();
+
+        if ($payment) {
+            $payment->icici_txnID = $response['txnID'] ?? null;
+            $payment->save();
+        }
         $OrderMerchantNumber = OrderMerchantNumber::where('merchantTxnNo', $merchantTxnNo)->first();
 
         $message = '';
@@ -3096,13 +3111,10 @@ class AuthController extends Controller
             $message = 'No data found by this merchantTxnNo.';
             return view('icici.thanks', compact('message'));
         }
-        
-       
         // Case: Payment success
         if (
             isset($response['respDescription']) &&
-            $response['respDescription'] === 'Transaction successful' &&
-            $response['responseCode'] === '0000'
+            $response['respDescription'] === 'Transaction successful'
         ) {
             if($OrderMerchantNumber->type==='new'){
                 $bookingResponse = $this->bookingNewICICIPayment(

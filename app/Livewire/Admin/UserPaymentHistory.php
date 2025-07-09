@@ -5,8 +5,14 @@ namespace App\Livewire\Admin;
 use Livewire\Component;
 use App\Models\User;
 use App\Models\Payment;
+use App\Models\Order;
 use App\Models\PaymentItem;
+use App\Models\AsignedVehicle;
+use App\Models\OrderMerchantNumber;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use Illuminate\Support\Str;
 use App\Exports\UserPaymentSummaryExport;
 
 class UserPaymentHistory extends Component
@@ -41,7 +47,7 @@ class UserPaymentHistory extends Component
     }
 
     public function paymentFetch($merchantTxnNo,$amount)
-    {
+    { 
         $merchantID = env('ICICI_MARCHANT_ID');
         $transactionType = 'STATUS';
 
@@ -88,6 +94,197 @@ class UserPaymentHistory extends Component
                 'error' => json_decode($response, true)
             ];
         }
+    }
+    public function FetchPayment($merchantTxnNo,$txnID,$paymentMode,$paymentDateTime){
+
+        $OrderMerchantNumber = OrderMerchantNumber::where('merchantTxnNo',$merchantTxnNo)->first();
+        if(!$OrderMerchantNumber){
+            session()->flash('payment_fetch_error', 'No data found by this merchantTxnNo.');
+            return false;
+        }
+        if($OrderMerchantNumber->type==='new'){
+            DB::beginTransaction();
+            try{
+                $status = true;
+                $order_amount = $OrderMerchantNumber->amount;
+                if($status==true){
+                    $order = Order::find($OrderMerchantNumber->order_id);
+                    $amount = number_format($order_amount, 2, '.', '');
+                    $orderAmount = number_format($order->final_amount, 2, '.', '');
+
+                    if ($orderAmount !== $amount) {
+                        session()->flash('payment_fetch_error', "Sorry, the payment amount (₹$amount) does not match the subscription amount (₹$orderAmount).");
+                        return false;
+                    }
+                    if($order->payment_status=="completed"){
+                        session()->flash('payment_fetch_error', "Payment already completed for this subscription.");
+                        return false;
+                    }
+
+                    $order_type = $order->subscription?Str::snake($order->subscription->subscription_type):"";
+                    $payment = Payment::where('icici_merchantTxnNo',$merchantTxnNo)->first();
+                    if(!$payment){
+                        session()->flash('payment_fetch_error', "Payment details not found on this merchantTxnNo.");
+                        return false;
+                    }
+                    $payment->order_id = $order->id;
+                    $payment->user_id = $order->user_id;
+                    $payment->order_type = 'new_subscription_'.$order_type;
+                    $payment->payment_method = $paymentMode;
+                    $payment->currency = "INR";
+                    $payment->payment_status = 'completed';
+                    $payment->transaction_id = $paymentDateTime;
+                    $payment->amount = $order->final_amount;
+                    $payment->icici_txnID = $txnID;
+                    $payment->payment_date = date('Y-m-d h:i:s', strtotime($paymentDateTime));
+                    $payment->save();
+                    if($payment){
+                        // Deposit Amount
+                        PaymentItem::updateOrCreate(
+                            [
+                                'payment_id' => $payment->id,
+                                'product_id' => $order->product_id,
+                                'type'       => 'deposit',
+                            ],
+                            [
+                                'payment_for' => 'new_subscription_' . $order_type,
+                                'duration'    => $order->rent_duration,
+                                'amount'      => $order->deposit_amount,
+                            ]
+                        );
+
+                        // Rental Amount
+                        PaymentItem::updateOrCreate(
+                            [
+                                'payment_id' => $payment->id,
+                                'product_id' => $order->product_id,
+                                'type'       => 'rental',
+                            ],
+                            [
+                                'payment_for' => 'new_subscription_' . $order_type,
+                                'duration'    => $order->rent_duration,
+                                'amount'      => $order->rental_amount,
+                            ]
+                        );
+                    }
+
+                    $order->payment_mode = "Online";
+                    $order->payment_status = "completed";
+                    $order->rent_status = "ready to assign";
+                    $order->subscription_type = 'new_subscription_'.$order_type;
+                    $order->save();
+
+                    DB::commit();
+                    session()->flash('payment_fetch_success', "Payment has been successfully created.");
+                    
+                }else{
+                    session()->flash('payment_fetch_error', "Payment failed. Please try again.");
+                    return false;
+                }    
+            } catch (\Exception $e) {
+                DB::rollBack();
+                // dd($e->getMessage());
+                session()->flash('payment_fetch_error', $e->getMessage());
+                // return response()->json([
+                //     'status' => false,
+                //     'message' => 'Failed to update payment.',
+                //     'error' => $e->getMessage(),
+                // ], 500);
+            }
+        }else{
+            $status = true;
+            $order = Order::with('subscription')->find($OrderMerchantNumber->order_id);
+            DB::beginTransaction();
+            try{
+                if($status==true){
+
+                    $existing_payment = Payment::where('icici_merchantTxnNo',$merchantTxnNo)->first();
+                    if(!$existing_payment){
+                        session()->flash('payment_fetch_error', "Payment details not found on this merchantTxnNo.");
+                        return false;
+                    }else{
+                        $assignRider = AsignedVehicle::where('order_id', $order->id)->first();
+
+                        $order_type = $order->subscription?Str::snake($order->subscription->subscription_type):"";
+                        $payment = Payment::find($existing_payment['id']);
+                        $payment->order_id = $order->id;
+                        $payment->user_id = $order->user_id;
+                        $payment->order_type = 'renewal_subscription_'.$order_type;
+                        $payment->payment_method = $paymentMode;
+                        $payment->currency = "INR";
+                        $payment->payment_status = 'completed';
+                        $payment->transaction_id = $paymentDateTime;
+                        $payment->icici_txnID = $txnID;
+                        $payment->payment_date = date('Y-m-d h:i:s', strtotime($paymentDateTime));
+
+                        $payment->amount = $order->subscription ? $order->subscription->rental_amount : $order->rental_amount;
+                        $payment->payment_date = date('Y-m-d h:i:s');
+                        $payment->save();
+            
+                        if($payment){
+                            // Rental Amount using updateOrCreate
+                            $payment_item = PaymentItem::updateOrCreate(
+                                [
+                                    'payment_id' => $payment->id,
+                                    'type' => 'rental',
+                                ],
+                                [
+                                    'product_id' => $order->product_id,
+                                    'payment_for' => 'renewal_subscription_' . $order_type,
+                                    'vehicle_id' => $assignRider->vehicle_id,
+                                    'amount' => $order->subscription ? $order->subscription->rental_amount : $order->rental_amount,
+                                    'duration' => $order->subscription ? $order->subscription->duration : $order->rent_duration,
+                                ]
+                            );
+
+                            // Calculate dates
+                            $startDate = Carbon::parse($assignRider->end_date);
+                            $endDate = $startDate->copy()->addDays($payment_item->duration);
+
+                            // Update Order
+                            $order->payment_mode = "Online";
+                            $order->payment_status = "completed";
+                            $order->rental_amount = $payment_item->amount;
+                            $order->total_price = $order->deposit_amount + $payment_item->amount;
+                            $order->final_amount = $order->deposit_amount + $payment_item->amount;
+                            $order->rent_duration = $payment_item->duration;
+                            $order->rent_start_date = $startDate;
+                            $order->rent_end_date = $endDate;
+                            $order->subscription_type = 'renewal_subscription_' . $order_type;
+                            $order->save();
+            
+                            
+            
+                            DB::table('exchange_vehicles')->insert([
+                                'status'       => "renewal",
+                                'user_id'      => $assignRider->user_id,
+                                'order_id'     => $assignRider->order_id,
+                                'vehicle_id'   => $assignRider->vehicle_id,
+                                'start_date'   => $assignRider->start_date,
+                                'end_date'     => $assignRider->end_date,
+                                'created_at'   => now(),
+                                'updated_at'   => now(),
+                            ]); 
+            
+                            $assignRider->start_date = $startDate;
+                            $assignRider->end_date = $endDate;
+                            $assignRider->status = "assigned";
+                            $assignRider->save();
+
+                            DB::commit();
+                            session()->flash('payment_fetch_success', "Payment completed and subscription renewed successfully.");
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Payment Failed', [
+                    'response' => $e->getMessage()
+                ]);
+                session()->flash('payment_fetch_error', $e->getMessage());
+            }
+        }
+        
     }
 
      public function exportAll()

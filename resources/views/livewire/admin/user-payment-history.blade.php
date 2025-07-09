@@ -151,8 +151,8 @@
                     </td>
                     <td class="text-center">{{ date('d M y h:i A', strtotime($item->payment_date)) }}</td>
                     <td class="text-center">
-                      @if($item->icici_merchantTxnNo)
-                        <a href="javascript:void(0)" wire:click="toggleRow({{ $key }}, '{{$item->icici_merchantTxnNo}}',{{$item->amount}})">
+                      @if($item->icici_txnID)
+                        <a href="javascript:void(0)" wire:click="toggleRow({{ $key }}, '{{$item->icici_txnID}}',{{$item->amount}})">
                           <span class="control"></span>
                         </a>
                         @endif
@@ -170,7 +170,7 @@
                                   <strong>Amount:</strong> {{ env('APP_CURRENCY') }}{{ number_format($transaction_details[$key]['amount'], 2) }}<br>
                                   <strong>Status:</strong> 
                                     @if($transaction_details[$key]['txnStatus'] == 'SUC')
-                                      Captured
+                                      Success
                                     @else
                                       Failed
                                     @endif
@@ -180,13 +180,33 @@
                                   <strong>Auth ID:</strong> {{ $transaction_details[$key]['txnAuthID'] ?? 'N/A' }}<br>
                                   <strong>Email:</strong> {{ $transaction_details[$key]['customerEmailID'] ?? 'N/A' }}<br>
                                   <strong>Contact:</strong> {{ $transaction_details[$key]['customerMobileNo'] ?? 'N/A' }}<br>
-                                  <strong>Transaction Time:</strong> 
+                                  <strong>Transaction Time:</strong>
                                     {{ \Carbon\Carbon::createFromFormat('YmdHis', $transaction_details[$key]['paymentDateTime'])->format('d M Y, h:i:s A') ?? 'N/A' }}
                                   <br>
                                   <strong>Transaction Status Code:</strong> {{ $transaction_details[$key]['txnResponseCode'] ?? 'N/A' }}<br>
                                   <strong>Response Description:</strong> {{ $transaction_details[$key]['txnRespDescription'] ?? 'N/A' }}<br>
                                 </div>
+                                <div>
+                                  @if($transaction_details[$key]['txnStatus'] == 'SUC' && $transaction_details[$key]['txnResponseCode']==='0000')
+                                      @if($item->payment_status != 'completed') 
+                                          {{-- Display error message from session --}}
+                                          @if(session()->has('payment_fetch_error')) 
+                                              <div class="col-auto alert alert-danger mt-3">
+                                                  {{ session('payment_fetch_error') }}
+                                              </div>
+                                          @endif
 
+                                          {{-- Display success message from session --}}
+                                          @if(session()->has('payment_fetch_success')) 
+                                              <div class="col-auto alert alert-success mt-3">
+                                                  {{ session('payment_fetch_success') }}
+                                              </div>
+                                          @endif
+                                        <button type="button" wire:click="FetchPayment('{{$item->icici_merchantTxnNo}}','{{$transaction_details[$key]['txnID']}}','{{$transaction_details[$key]['paymentMode']}}','{{$transaction_details[$key]['paymentDateTime']}}')" class="btn btn-success"> Complete Payment Transaction
+                                      </button>
+                                      @endif
+                                  @endif
+                                </div>
                           @endif
                       </td>
                   </tr>
