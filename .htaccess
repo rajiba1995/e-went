@@ -1,0 +1,3 @@
+<IfModule mod_rewrite.c>
+    php_value max_execution_time 600
+</IfModule>
