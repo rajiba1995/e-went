@@ -17,8 +17,8 @@ class MenuServiceProvider extends ServiceProvider
         //
     }
 
-    
-   
+
+
 /**
      * Return vertical menu data.
      */
@@ -77,9 +77,9 @@ class MenuServiceProvider extends ServiceProvider
           ],
       ];
     }
- 
 
-             
+
+
 /**
      * Bootstrap services.
      */
