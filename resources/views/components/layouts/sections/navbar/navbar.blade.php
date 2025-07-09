@@ -109,6 +109,10 @@ $adminUser = Auth::guard('admin')->user();
                     <form id="logout-form" action="{{ route('admin.logout') }}" method="POST" style="display: none;">
                       @csrf
                     </form>
+                    <a href="{{route('admin.reset-password')}}"  class="btn btn-info d-flex mb-1">
+                      <small class="align-middle">Reset Password</small>
+                      <i class="ri-key-line ms-2 ri-16px"></i>
+                    </a>
                     <a href="#" onclick="event.preventDefault(); document.getElementById('logout-form').submit();" class="btn btn-danger d-flex">
                       <small class="align-middle">Logout</small>
                       <i class="ri-logout-box-r-line ms-2 ri-16px"></i>

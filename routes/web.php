@@ -9,16 +9,17 @@ use App\Http\Controllers\Admin\CronController;
 use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
-use App\Livewire\Admin\{CustomerAdd, Dashboard, CustomerIndex, CustomerDetails,OrderIndex,OfferIndex, PolicyDetails, OrderDetail,CityIndex,PincodeIndex,RiderEngagement,PaymentSummary,PaymentUserSummary,UserPaymentHistory,PaymentVehicleSummary,RefundSummary};
+use App\Livewire\Admin\{CustomerAdd, Dashboard, CustomerIndex, CustomerDetails,OrderIndex,OfferIndex, PolicyDetails, OrderDetail,CityIndex,PincodeIndex,RiderEngagement,PaymentSummary,PaymentUserSummary,UserPaymentHistory,PaymentVehicleSummary,RefundSummary,ChangePassword};
 use App\Livewire\Product\{
-    MasterCategory, MasterSubCategory, MasterProduct, AddProduct, UpdateProduct, 
-    GalleryIndex, StockProduct, MasterProductType,ProductWiseVehicle,VehicleList,MasterSubscription,VehicleCreate,VehicleUpdate,VehicleDetail,VehiclePaymentSummary,BomPartList
+    MasterCategory, MasterSubCategory, MasterProduct, AddProduct, UpdateProduct,
+    GalleryIndex, StockProduct, MasterProductType,ProductWiseVehicle,VehicleList,MasterSubscription,VehicleCreate,VehicleUpdate,VehicleDetail,VehiclePaymentSummary,BomPartList,SellingQuery
 };
 use App\Livewire\Master\{BannerIndex, FaqIndex, WhyEwentIndex,EmployeeManagementList,EmployeeManagementCreate,EmployeeManagementUpdate,DesignationIndex,DesignationPermissionList};
 
 // Public Route for Login
 
-Route::get('admin/login', AdminLogin::class)->name('login');
+Route::get('admin/login', action: AdminLogin::class)->name('login');
+Route::get('admin/reset-password', action: ChangePassword::class)->name('admin.reset-password');
 
 Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.logout');
 
@@ -39,7 +40,7 @@ Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
         Route::get('/list', MasterProduct::class)->name('admin.product.index')->middleware('check.permission');
         Route::get('/categories', MasterCategory::class)->name('admin.product.categories');
         Route::get('/sub-categories', MasterSubCategory::class)->name('admin.product.sub_categories');
-        
+
         Route::get('/keywords', MasterProductType::class)->name('admin.product.type');
         Route::get('/new', AddProduct::class)->name('admin.product.add')->middleware('check.permission');
         Route::get('/update/{productId}', UpdateProduct::class)->name('admin.product.update')->middleware('check.permission');
@@ -55,6 +56,13 @@ Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
         Route::get('/', BomPartList::class)->name('admin.bom_part.list');
         // Route::get('/vehicle/{product_id}', ProductWiseVehicle::class)->name('admin.product.stocks.vehicle');
     });
+    Route::group(['prefix' => 'bom-parts'], function () {
+      Route::get('/', BomPartList::class)->name('admin.bom_part.list');
+      // Route::get('/vehicle/{product_id}', ProductWiseVehicle::class)->name('admin.product.stocks.vehicle');
+  });
+  Route::group(['prefix' => 'selling-query'], function () {
+    Route::get('/', SellingQuery::class)->name('admin.selling_query.list');
+});
     Route::group(['prefix' => 'vehicle'], function () {
         Route::get('/list', VehicleList::class)->name('admin.vehicle.list')->middleware('check.permission');
         Route::get('/create', VehicleCreate::class)->name('admin.vehicle.create')->middleware('check.permission');
@@ -105,7 +113,7 @@ Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
     });
 });
 
-// Cron 
+// Cron
 Route::group(['prefix'=>'cron'], function(){
     Route::get('/test', [CronController::class,'TestLog']);
     Route::get('/vehicles/daily-timeline', [CronController::class,'DailyVehicleLog']);

@@ -18,7 +18,7 @@
   <div class="menu-inner-shadow"></div>
 
   <ul class="menu-inner py-1 ps">
-    
+
     <li class="menu-item {{ (request()->is('admin/dashboard*')) ? 'open' : '' }}">
       <a href="{{route('admin.dashboard')}}" class="menu-link">
         <i class="menu-icon tf-icons ri-home-smile-line"></i>
@@ -143,7 +143,7 @@
               <div>Categories</div>
             </a>
           </li>
-    
+
           <li class="menu-item {{ (request()->is('admin/models/sub-categories*')) ? 'open' : '' }}">
             <a href="{{route('admin.product.sub_categories')}}" class="menu-link">
               <div>Subcategories</div>
@@ -180,7 +180,7 @@
             <div>Vehicles List</div>
           </a>
         </li>
-  
+
         <li class="menu-item {{ (request()->is('admin/vehicle/create')) ? 'open' : '' }}">
           <a href="{{route('admin.vehicle.create')}}" class="menu-link">
             <div>Create Vehicle</div>
@@ -245,7 +245,20 @@
         </li>
       </ul>
     </li>
-   
+    <li class="menu-item {{ (request()->is('admin/selling-query*')) ? 'open' : '' }}" style="">
+      <a href="#" class="menu-link menu-toggle waves-effect" target="_blank">
+        <i class="menu-icon tf-icons ri-store-line"></i>
+        <div>Selling Query</div>
+      </a>
+      <ul class="menu-sub">
+        <li class="menu-item {{ (request()->is('admin/selling-query*')) ? 'open' : '' }}">
+          <a href="{{route('admin.selling_query.list')}}" class="menu-link">
+            <div>List</div>
+          </a>
+        </li>
+      </ul>
+    </li>
+
     <div class="ps__rail-x" style="left: 0px; bottom: 0px;">
       <div class="ps__thumb-x" tabindex="0" style="left: 0px; width: 0px;"></div>
     </div>
