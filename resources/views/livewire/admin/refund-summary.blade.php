@@ -117,7 +117,7 @@
                               tabindex="-1">
                               <span class="d-none d-sm-block">
                                  Eligible Refunds <span
-                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-secondary ms-1_5 pt-50">{{count($eligible_refunds)}}</span>
+                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-secondary ms-1_5 pt-50">{{$eligible_refunds->total()}}</span>
                                 </span>
                                 <i class="ri-user-3-line ri-20px d-sm-none"></i>
                           </li>
@@ -127,7 +127,7 @@
                               tabindex="-1">
                               <span class="d-none d-sm-block">
                                 In Progress <span
-                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-success ms-1_5 pt-50">{{count($verified_users)}}</span>
+                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-success ms-1_5 pt-50">{{$in_progress_data->total()}}</span>
                                 </span>
                                 <i class="ri-user-3-line ri-20px d-sm-none"></i>
                             </button>
@@ -230,96 +230,65 @@
                                         <tr>
                                             <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">SL</th>
                                             <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Riders</th>
-                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">KYC Verified Date/Time</th>
                                             <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Vehicle Model</th>
-                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Deposit Status</th>
-                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Rental Status</th>
-                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Dashboard</th>
-                                            <th class="text-end text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle px-4">Documents</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Refund Amount</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Refund Initiated By</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Refund Category</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
 
-                                        @foreach($verified_users as $k => $v_user)
+                                        @foreach($in_progress_data as $in_progress_index => $in_progress)
+                                        {{-- {{dd($in_progress)}} --}}
                                         @php
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
-                                            $colorClass = $colors[$k % count($colors)]; // Rotate colors based on index
+                                            $colorClass = $colors[$in_progress_index % count($colors)]; // Rotate colors based on index
                                         @endphp
                                             <tr>
-                                                <td class="align-middle text-center">{{ $k + 1 }}</td>
+                                                <td class="align-middle text-center">{{ $in_progress_index + 1 }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center customer-name">
                                                         <div class="avatar-wrapper me-3">
                                                             <div class="avatar avatar-sm">
-                                                                @if ($v_user->image)
-                                                                    <img src="{{ asset($v_user->image) }}" alt="Avatar" class="rounded-circle">
+                                                                @if ($in_progress->user->image)
+                                                                    <img src="{{ asset($in_progress->user->image) }}" alt="Avatar" class="rounded-circle">
                                                                 @else
                                                                     <div class="avatar-initial rounded-circle {{$colorClass}}">
-                                                                        {{ strtoupper(substr($v_user->name, 0, 1)) }}{{ strtoupper(substr(strrchr($v_user->name, ' '), 1, 1)) }}
+                                                                        {{ strtoupper(substr($in_progress->user->name, 0, 1)) }}{{ strtoupper(substr(strrchr($in_progress->user->name, ' '), 1, 1)) }}
                                                                     </div>
                                                                 @endif
                                                             </div>
                                                         </div>
                                                         <div class="d-flex flex-column">
-                                                            <a href="{{ route('admin.customer.details', $v_user->id) }}"
-                                                                class="text-heading"><span class="fw-medium text-truncate">{{ ucwords($v_user->name) }}</span>
+                                                            <a href="{{ route('admin.customer.details', $in_progress->user->id) }}"
+                                                                class="text-heading"><span class="fw-medium text-truncate">{{ ucwords($in_progress->user->name) }}</span>
                                                             </a>
-                                                            <small class="text-truncate">{{ $v_user->email }} </small>
-                                                            {{-- | {{$v_user->country_code}} {{ $v_user->mobile }} --}}
+                                                            <small class="text-truncate">{{ $in_progress->user->email }} </small>
                                                         <div>
                                                     </div>
                                                 </td>
                                                 <td class="align-middle text-start">
-                                                    {{$v_user->kyc_uploaded_at?date('d M y h:i A', strtotime($v_user->kyc_uploaded_at)):"N/A"}}</td>
+                                                   {{ $in_progress->order_item?->product?->title ?? 'N/A' }}
+                                                </td>
                                                 <td class="align-middle text-start">
-                                                    @if($v_user->active_vehicle)
-                                                        {{$v_user->latest_order?$v_user->latest_order->product->title:"N/A"}}
-                                                    @else
-                                                        N/A
-                                                    @endif
+                                                   {{env('APP_CURRENCY')}}{{ $in_progress->refund_amount }}
                                                 </td>
                                                 <td class="align-middle text-sm text-center">
-                                                    @if($v_user->active_vehicle)
-                                                        @if($v_user->latest_order)
-                                                            @if($v_user->latest_order->payment_status=="completed")
-                                                                <span class="badge bg-label-success mb-0 cursor-pointer text-uppercase">{{$v_user->latest_order->payment_status}}</span>
-                                                            @else
-                                                                <span class="badge bg-label-warning mb-0 cursor-pointer text-uppercase">{{$v_user->latest_order->payment_status}}</span>
-                                                            @endif
-                                                        @else
-                                                            <span class="badge bg-label-danger mb-0 cursor-pointer">NOT PAID</span>
-                                                        @endif
-                                                    @else
-                                                        <span class="badge bg-label-danger mb-0 cursor-pointer">NOT PAID</span>
-                                                    @endif
+                                                    <div class="d-flex flex-column cursor-pointer">
+                                                        <small class="text-truncate text-success" title="{{ ucwords($in_progress->initiated_by?->name ?? 'N/A') }}">{{ $in_progress->initiated_by->email }} </small>
+                                                        <small class="text-truncate">{{ date('d M y h:i A', strtotime($in_progress->refund_initiated_at)) }}</small>
+                                                    <div>
                                                 </td>
                                                 <td class="align-middle text-sm text-center">
-                                                    @if($v_user->active_vehicle)
-                                                        @if($v_user->latest_order)
-                                                            @if($v_user->latest_order->payment_status=="completed")
-                                                                <span class="badge bg-label-success mb-0 cursor-pointer text-uppercase">{{$v_user->latest_order->payment_status}}</span>
-                                                            @else
-                                                                <span class="badge bg-label-warning mb-0 cursor-pointer text-uppercase">{{$v_user->latest_order->payment_status}}</span>
-                                                            @endif
-                                                        @else
-                                                            <span class="badge bg-label-danger mb-0 cursor-pointer">NOT PAID</span>
-                                                        @endif
-                                                    @else
-                                                        <span class="badge bg-label-danger mb-0 cursor-pointer">NOT PAID</span>
-                                                    @endif
-                                                </td>
-                                                <td class="align-middle text-sm text-center">
-                                                    <div class="dropdown cursor-pointer">
-                                                        <span class="badge px-2 rounded-pill bg-label-secondary dropdown-toggle" id="exploreDropdown_await_{{$v_user->id}}" data-bs-toggle="dropdown" aria-expanded="false">Explore</span>
-                                                        <ul class="dropdown-menu" aria-labelledby="exploreDropdown_await_{{$v_user->id}}">
-                                                             <li><a class="dropdown-item" href="{{ route('admin.customer.details', $v_user->id) }}">Rider Details</a></li>
-                                                        </ul>
-                                                    </div>
+                                                    <span class="badge bg-label-{{ $in_progress->refund_category == 'deposit_partial_refund' ? 'warning' : ($in_progress->refund_category == 'deposit_full_refund' ? 'success' : 'danger') }} mb-0 text-uppercase">
+                                                        {{ strtoupper(str_replace('_', ' ', $in_progress->refund_category)) }}
+                                                    </span>
+
                                                 </td>
                                                 <td class="align-middle text-end px-4">
-                                                    <button class="btn btn-outline-success waves-effect mb-0 custom-input-sm ms-2"
-                                                        wire:click="showCustomerDetails({{ $v_user->id}})">
-                                                    View
+                                                    <button class="btn btn-sm btn-primary text-white mb-0 custom-input-sm ms-2">
+                                                    Update
                                                 </button>
                                                 </td>
                                             </tr>
@@ -327,7 +296,7 @@
                                     </tbody>
                                 </table>
                                 <div class="d-flex justify-content-end mt-3 paginator">
-                                    {{ $verified_users->links() }} <!-- Pagination links -->
+                                    {{ $in_progress_data->links() }} <!-- Pagination links -->
                                 </div>
                             </div>
                         </div>
@@ -634,40 +603,10 @@
             </div>
         </div>
     @endif
-    @if ($isPreviewimageModal)
-        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(0, 0, 0, 0.5);z-index: 99999;">
-            <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">{{ $document_type }}</h5>
-                        <button type="button" class="btn-close" wire:click="closePreviewImage"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <div class="card academy-content shadow-none border mx-2">
-                                <div class="p-2">
-                                    <div class="cursor-pointer">
-                                        <img src="{{$preview_front_image}}" alt="" width="100%">
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card academy-content shadow-none border mx-2 my-2">
-                                <div class="p-2">
-                                    <div class="cursor-pointer">
-                                        <img src="{{$preview_back_image}}" alt="" width="100%">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 
 </div>
 
-@section(section: 'page-script')
+@section('page-script')
 <link rel="stylesheet" href="{{ asset('assets/custom_css/component-chosen.css') }}">
 <script src="{{ asset('assets/js/chosen.jquery.js') }}"></script>
 

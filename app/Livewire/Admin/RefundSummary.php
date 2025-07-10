@@ -7,6 +7,7 @@ use Livewire\WithPagination;
 use App\Models\User;
 use App\Models\Order;
 use App\Models\BomPart;
+use App\Models\OrderItemReturn;
 use App\Models\UserKycLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -73,9 +74,13 @@ class RefundSummary extends Component
 
       ]);
     }
+    public function ResetEligibleFromField(){
+         $this->reset(['over_due_days','bom_parts','balance_amnt','parts_amnt']);
+    }
 
     public function closeModal()
     {
+        $this->ResetEligibleFromField();
         $this->isModalOpen = false;
     }
 
@@ -116,20 +121,27 @@ class RefundSummary extends Component
             ->orderByDesc('id')
             ->paginate(20);
 
-        $verified_users = User::with('doc_logs','latest_order','active_vehicle')
-            ->when($this->search, function ($query) {
-                $searchTerm = '%' . $this->search . '%';
-                $query->where(function ($q) use ($searchTerm) {
-                    $q->where('name', 'like', $searchTerm)
-                    ->orWhere('mobile', 'like', $searchTerm)
-                    ->orWhere('email', 'like', $searchTerm)
-                    ->orWhere('customer_id', 'like', $searchTerm);
+       $in_progress_data = OrderItemReturn::with('order_item')
+        ->when($this->search, function ($query) {
+            $searchTerm = '%' . $this->search . '%';
+
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereHas('order_item.product', function ($productQuery) use ($searchTerm) {
+                    $productQuery->where('title', 'like', $searchTerm);
                 });
-            })
-            ->where('is_verified', 'verified')
-            ->orderBy('id', 'DESC')
-            ->paginate(20);
-            
+
+                $q->orWhereHas('user', function ($userQuery) use ($searchTerm) {
+                    $userQuery->where('name', 'like', $searchTerm)
+                        ->orWhere('mobile', 'like', $searchTerm)
+                        ->orWhere('email', 'like', $searchTerm)
+                        ->orWhere('customer_id', 'like', $searchTerm);
+                });
+            });
+        })
+        ->orderBy('id', 'DESC')
+        ->where('status', 'in_progress')
+        ->paginate(20);
+
         $rejected_users = User::with('doc_logs')
             ->when($this->search, function ($query) {
                 $searchTerm = '%' . $this->search . '%';
@@ -145,7 +157,7 @@ class RefundSummary extends Component
             ->paginate(20);
         return view('livewire.admin.refund-summary', [
             'eligible_refunds' => $eligible_refunds,
-            'verified_users' => $verified_users,
+            'in_progress_data' => $in_progress_data,
             'rejected_users' => $rejected_users
         ]);
     }

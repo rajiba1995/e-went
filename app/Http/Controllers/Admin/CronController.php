@@ -360,6 +360,4 @@ class CronController extends Controller
             ], 500);
         }
     }
-
-
 }
