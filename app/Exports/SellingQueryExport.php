@@ -46,9 +46,12 @@ class SellingQueryExport implements FromCollection, WithHeadings
     /**
     * @return \Illuminate\Support\Collection
     */
-
-    public function __construct()
+    protected $product_id, $start_date, $end_date;
+    public function __construct($start_date,$end_date,$product_id)
     {
+      $this->product_id = $product_id;
+      $this->start_date = $start_date;
+      $this->end_date = $end_date;
 
     }
     public function collection()
@@ -57,7 +60,20 @@ class SellingQueryExport implements FromCollection, WithHeadings
           'user:id,name,country_code,mobile,email,address,city,pincode,profile_image',
             'product:id,title',
       ])
+            ->when($this->product_id, function ($query) {
+              $query->where('product_id', $this->product_id);
+          })
+              ->when($this->start_date && $this->end_date, function ($query) {
+                $query->whereBetween('created_at', [$this->start_date. ' 00:00:00', $this->end_date . ' 23:59:59']);
+            })
+            ->when($this->start_date && !$this->end_date, function ($query) {
+                $query->whereDate('created_at', '>=', $this->start_date);
+            })
+            ->when(!$this->start_date && $this->end_date, function ($query) {
+                $query->whereDate('created_at', '<=', $this->end_date);
+            })
             ->orderBy('id', 'DESC')
+
             ->get()->map(function ($query) {
               $query->phone=$query->user->country_code.$query->user->mobile;
               $query->address=$query->user->address;
@@ -83,6 +99,8 @@ class SellingQueryExport implements FromCollection, WithHeadings
             ];
         })
         ->toArray();
+
+        return collect(value: $data);
 
 
 
