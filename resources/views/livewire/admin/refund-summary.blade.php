@@ -43,7 +43,7 @@
             background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
         }
-        
+
         /* 17-03-2025 */
         .side-modal {
             height: 100vh;
@@ -83,7 +83,7 @@
             @endif
         </div>
     </div>
-    
+
     <div class="col-lg-12 col-md-6 mb-md-0 my-4">
         <div class="row">
             <div class="col-12">
@@ -91,15 +91,15 @@
                     <div class="row justify-content-end">
                         <div class="col-lg-6 col-6 my-auto mb-2">
                             <div class="d-flex align-items-center justify-content-end">
-                                <input type="text" wire:model="search" 
-                                       class="form-control border border-2 p-2 custom-input-sm" 
+                                <input type="text" wire:model="search"
+                                       class="form-control border border-2 p-2 custom-input-sm"
                                        placeholder="Search by Rider's Name, Email, or Mobile Number">
-                                <button type="button" wire:click="btn_search" 
+                                <button type="button" wire:click="btn_search"
                                         class="btn btn-primary text-white mb-0 custom-input-sm ms-2">
                                     <span class="material-icons">Search</span>
                                 </button>
                                 <!-- Refresh Button -->
-                                <button type="button" wire:click="reset_search" 
+                                <button type="button" wire:click="reset_search"
                                         class="btn btn-outline-danger waves-effect mb-0 custom-input-sm ms-2">
                                     <span class="material-icons">Refresh</span>
                                 </button>
@@ -159,7 +159,7 @@
                     <div class="card-body">
                       <div class="tab-content p-0">
                         <div class="tab-pane fade {{$active_tab==1?"active show":""}}" id="navs-justified-home" role="tabpanel">
-                            
+
                             <div class="table-responsive p-0">
                                 <table class="table align-items-center mb-0">
                                     <thead>
@@ -173,7 +173,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($eligible_refunds as $k => $un_user)
                                         @php
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
@@ -239,7 +239,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($verified_users as $k => $v_user)
                                         @php
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
@@ -345,7 +345,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($rejected_users as $k => $r_user)
                                         @php
                                             $UserKycLog = App\Models\UserKycLog::where('user_id', $r_user->id)->where('status', 'Rejected')->orderBy('id', 'DESC')->whereDate('created_at', '>=', date('Y-m-d', strtotime($r_user->date_of_rejection)))->get();
@@ -431,7 +431,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($rejected_users as $k => $r_user)
                                         @php
                                             $UserKycLog = App\Models\UserKycLog::where('user_id', $r_user->id)->where('status', 'Rejected')->orderBy('id', 'DESC')->whereDate('created_at', '>=', date('Y-m-d', strtotime($r_user->date_of_rejection)))->get();
@@ -509,7 +509,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="loader-container" wire:loading>
         <div class="loader"></div>
     </div>
@@ -553,28 +553,50 @@
                 @endif
                 <div class="nav-align-top">
                     <ul class="nav nav-tabs nav-fill" role="tablist">
-                      <li class="nav-item" role="presentation"> 
+                      <li class="nav-item" role="presentation">
                         <button type="button" class="nav-link waves-effect modal-nav active" role="tab">
-                          <span class="d-none d-sm-block">Partial Refund 
+                          <span class="d-none d-sm-block">Partial Refund
                             </span>
                       </li>
                     </ul>
                 </div>
                 <div class="tab-content p-0 mt-6">
                     <div class="tab-pane fade active show" id="navs-justified-overview" role="tabpanel">
-                        <div class="col-12 mb-3">
+                        <div class="col-12 mb-3" wire:ignore>
                             <label for="product_id" class="form-label">BOM Parts <span class="text-danger">*</span></label>
-                            <select 
-                                class="form-select @error('bom_part') is-invalid @enderror" 
-                                id="bom_part" 
-                                wire:model="bom_part">
+                            <select
+                                class="form-control"
+                                id="bom_part"
+                                wire:model="bom_part" data-placeholder="Please select..." multiple
+                                >
                                 <option value="" hidden>Select product</option>
                                 @foreach($BomParts as $bom_part)
                                     <option value="{{ $bom_part->id }}">{{ $bom_part->part_name }} |  {{env('APP_CURRENCY')}}{{round($bom_part->part_price)}}</option> <!-- Adjust field name if needed -->
                                 @endforeach
                             </select>
-                            @error('bom_part') <span class="text-danger">{{ $message }}</span> @enderror
                         </div>
+                        <div class="col-12 mb-3">
+                          <label for="product_id" class="form-label">Overdue Days <span class="text-danger">*</span></label>
+                          <select
+                              class="form-select"
+                              id="over_due_days"
+                              wire:model="over_due_days" wire:change="setOverdueDays($event.target.value)">
+                              <option value="" >Select Overdue</option>
+                              @for ($i = 1; $i <= 20; $i++)
+                              <option value="{{ $i }}">{{ $i }}</option>
+                              @endfor
+                          </select>
+                      </div>
+                      <div class="col-12 mb-3">
+                        <label for="product_id" class="form-label">Deduct Amount </label>
+                        <input type="text" class="form-control"  wire:model="deduct_amounts">
+
+                    </div>
+                    <div class="col-12 mb-3">
+                      <label for="product_id" class="form-label">Balance Amount </label>
+                      <input type="text" class="form-control"  wire:model="balance_amnt">
+
+                  </div>
                     </div>
                 </div>
             </div>
@@ -644,8 +666,41 @@
     @endif
 
 </div>
-@section('page-script')
+
+@section(section: 'page-script')
+<link rel="stylesheet" href="{{ asset('assets/custom_css/component-chosen.css') }}">
+<script src="{{ asset('assets/js/chosen.jquery.js') }}"></script>
+
+
+
 <script>
+  var jq = $.noConflict();
+
+function initChosen() {
+    // Re-initialize Chosen
+    jq("#bom_part").chosen({ width: "100%" });
+
+    // Attach change event
+    jq("#bom_part").on('change', function () {
+        const selected = jq(this).val(); // Array of selected values
+        console.log(selected);
+          //this@.cll('bomPartChanged', selected);
+          @this.call('bomPartChanged', selected)
+    });
+}
+
+// Bind after Livewire updates the DOM
+window.addEventListener('bind-chosen', () => {
+    setTimeout(() => {
+        initChosen();
+    }, 100); // Slight delay to ensure DOM is ready
+});
+
+// Optional: trigger from Livewire component like:
+// $this->dispatchBrowserEvent('bind-chosen');
+
+
+
     setTimeout(() => {
         const flashMessage = document.getElementById('modalflashMessage');
         if (flashMessage) flashMessage.remove();

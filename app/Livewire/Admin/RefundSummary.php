@@ -17,7 +17,7 @@ class RefundSummary extends Component
 
     protected $paginationTheme = 'bootstrap';
     public $search = '';
-    public $remarks,$field,$document_type,$id;
+    public $remarks,$field,$document_type,$id,$over_due_days,$bom_parts=[],$balance_amnt=0,$parts_amnt;
     public $active_tab = 1;
     public $customers = [];
     public $selectedCustomer = null; // Stores the selected customer data
@@ -43,7 +43,7 @@ class RefundSummary extends Component
         $this->isRejectModal = true;
     }
     public function OpenPreviewImage($front_image, $back_image,$document_type)
-    {   
+    {
         $this->preview_front_image = $front_image;
         $this->preview_back_image = $back_image;
         $this->document_type = $document_type;
@@ -69,6 +69,9 @@ class RefundSummary extends Component
         $this->BomParts = BomPart::where('product_id', $this->selected_order->product_id)->orderBy('part_name','ASC')->get();
         $this->selectedCustomer = User::find($customerId);
         $this->isModalOpen = true;
+        $this->dispatch('bind-chosen', [
+
+      ]);
     }
 
     public function closeModal()
@@ -146,4 +149,24 @@ class RefundSummary extends Component
             'rejected_users' => $rejected_users
         ]);
     }
+    public function setOverdueDays($days){
+    $this->over_due_days=$days;
+    }
+    public function bomPartChanged($parts)
+    {
+      $totalAmnt=0;
+      $bom_parts=BomPart::whereIn('id', $parts)->get();
+      foreach($bom_parts as $part)
+      {
+        $totalAmnt+=$part->part_price;
+      }
+      $this->parts_amnt=$totalAmnt;
+      $this->calculateAmount();
+
+    }
+    public function calculateAmount()
+    {
+      $this->balance_amnt=$this->parts_amnt;
+    }
+
 }
