@@ -377,6 +377,7 @@
                                     </tbody>
                                 </table>
                                 <div class="d-flex justify-content-end mt-3 paginator">
+                                    {{-- {{dd(request()->get('page', 1))}} --}}
                                     {{ $all_users->links() }} <!-- Pagination links -->
                                 </div>
                             </div>

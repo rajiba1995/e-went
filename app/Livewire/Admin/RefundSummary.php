@@ -112,6 +112,7 @@ class RefundSummary extends Component
             ->where('rent_status', 'returned')
             ->orderByDesc('id')
             ->paginate(20);
+
         $verified_users = User::with('doc_logs','latest_order','active_vehicle')
             ->when($this->search, function ($query) {
                 $searchTerm = '%' . $this->search . '%';
@@ -125,6 +126,7 @@ class RefundSummary extends Component
             ->where('is_verified', 'verified')
             ->orderBy('id', 'DESC')
             ->paginate(20);
+            
         $rejected_users = User::with('doc_logs')
             ->when($this->search, function ($query) {
                 $searchTerm = '%' . $this->search . '%';
