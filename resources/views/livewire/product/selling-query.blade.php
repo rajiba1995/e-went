@@ -10,13 +10,49 @@
                               <div class="col-lg-6 col-7">
                                   <h6>Selling Queries</h6>
                               </div>
-                              <div class="col-md-6 d-flex justify-content-end align-items-start">
-                                <button class="btn btn-primary mt-0" wire:click="exportAll">
-                                  <i class="ri-download-line"></i> Export
-                                </button>
-                              </div>
-                          </div>
 
+                          </div>
+                          <div class="row mb-3 g-2 align-items-end">
+
+                            <!-- Rider Filter -->
+
+                            <!-- Product Type -->
+                            <div class="col-md-2">
+                              <label class="form-label text-uppercase small">Model</label>
+                              <select wire:model="product_id" class="form-select border border-2 p-2 custom-input-sm"  wire:change="updateFilters('product_id', $event.target.value)">
+                                <option value="" selected>Select Model</option>
+                                  @foreach ($filterData['product_lists'] as $model)
+                                    <option value="{{$model['id']}}" >{{$model['title']}}</option>
+                                  @endforeach
+                              </select>
+                            </div>
+
+
+
+                            <!-- Start Date -->
+                            <div class="col-md-2">
+                              <label class="form-label text-uppercase small">Start Date</label>
+                              <input type="date" wire:model="start_date" wire:change="updateFilters('start_date', $event.target.value)" class="border border-2 p-2 custom-input-sm form-control">
+                            </div>
+
+                            <!-- End Date -->
+                            <div class="col-md-2">
+                              <label class="form-label text-uppercase small">End Date</label>
+                              <input type="date" wire:model="end_date" wire:change="updateFilters('end_date', $event.target.value)" class="border border-2 p-2 custom-input-sm form-control">
+                            </div>
+                            <div class="col-md-1">
+                              <a href="javascript:void(0)"
+                                class="btn btn-danger text-white custom-input-sm" wire:click="resetPageField">
+                                <i class="ri-restart-line"></i>
+                              </a>
+                            </div>
+                            <!-- Export Button -->
+                            <div class="col-md-1 d-grid">
+                              <button wire:click="exportAll" class="btn btn-primary mt-3">
+                                <i class="ri-download-line"></i> Export
+                              </button>
+                            </div>
+                          </div>
                       </div>
                       <div class="card-body px-0 pb-2 mt-2">
                           <div class="table-responsive p-0">

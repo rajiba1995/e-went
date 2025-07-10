@@ -5,12 +5,18 @@ namespace App\Livewire\Product;
 use Livewire\Component;
 use Illuminate\Pagination\Paginator;
 use App\Exports\SellingQueryExport;
+use App\Models\Product;
 use Maatwebsite\Excel\Facades\Excel;
 
 class SellingQuery extends Component
 {
+    public $filterData = [];
     public $selling_queries = [];
     public $selectedQuery = null;
+
+    public $start_date,$end_date,$product_lists=[],$product_id;
+
+
     public $selectedID = null;
 
     public function boot(){
@@ -50,6 +56,19 @@ class SellingQuery extends Component
     public function exportAll()
     {
 
-        return Excel::download(new SellingQueryExport(), 'selling_queries.xlsx');
+        return Excel::download(new SellingQueryExport($this->start_date,$this->end_date,$this->product_id), 'selling_queries.xlsx');
     }
+    public function updateFilters($value,$field){
+      $this->$field = $value;
+  }
+  public function mount(){
+
+    $this->filterData = [
+        'product_lists' => \App\Models\Product::select('id','title')->get(),
+    ];
+}
+public function resetPageField(){
+  $this->reset(['start_date','end_date','product_id']);
+}
+
 }
