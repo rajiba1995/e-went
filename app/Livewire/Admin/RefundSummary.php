@@ -11,14 +11,16 @@ use App\Models\OrderItemReturn;
 use App\Models\UserKycLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
-
+use Livewire\WithFileUploads;
+use Illuminate\Support\Str;
 class RefundSummary extends Component
 {
     use WithPagination;
-
+    use WithFileUploads; // ✅ REQUIRED for file uploads
     protected $paginationTheme = 'bootstrap';
     public $search = '';
-    public $remarks,$field,$document_type,$id,$over_due_days,$bom_parts=[],$balance_amnt=0,$parts_amnt;
+    public $remarks,$field,$document_type,$id,$over_due_days,$bom_parts=[],$balance_amnt=0,$parts_amnt,$order_id,
+    $over_due_amnts=0,$deduct_amounts=0,$port_charges=0,$reason,$damaged_part_image=[];
     public $active_tab = 1;
     public $customers = [];
     public $selectedCustomer = null; // Stores the selected customer data
@@ -70,9 +72,11 @@ class RefundSummary extends Component
         $this->BomParts = BomPart::where('product_id', $this->selected_order->product_id)->orderBy('part_name','ASC')->get();
         $this->selectedCustomer = User::find($customerId);
         $this->isModalOpen = true;
+        $this->calculateAmount();
         $this->dispatch('bind-chosen', [
 
       ]);
+
     }
     public function ResetEligibleFromField(){
          $this->reset(['over_due_days','bom_parts','balance_amnt','parts_amnt']);
@@ -97,7 +101,14 @@ class RefundSummary extends Component
         $user->save();
         session()->flash('message', 'Customer status updated successfully.');
     }
-
+    public function rules()
+    {
+        return [
+            // Only validate if attachments are present
+            'damaged_part_image.*' => 'nullable|image|max:5120', // each file can be null or a valid image
+            'balance_amnt'   => 'required|numeric|min:0.01', // must be greater than zero
+        ];
+    }
     public function tab_change($value){
         $this->active_tab = $value;
         $this->search = "";
@@ -162,7 +173,9 @@ class RefundSummary extends Component
         ]);
     }
     public function setOverdueDays($days){
-    $this->over_due_days=$days;
+    $per_day_amnt=($this->selected_order->deposit_amount/$this->selected_order->rent_duration );
+    $this->over_due_amnts=$per_day_amnt*$days;
+    $this->calculateAmount();
     }
     public function bomPartChanged($parts)
     {
@@ -178,7 +191,36 @@ class RefundSummary extends Component
     }
     public function calculateAmount()
     {
-      $this->balance_amnt=$this->parts_amnt;
+      $this->deduct_amounts=ceil($this->parts_amnt+$this->over_due_amnts+$this->port_charges);
+      $this->balance_amnt=($this->selected_order->deposit_amount-$this->deduct_amounts);
+    }
+    public function setPortChareges($amnt)
+    {
+      $this->port_charges=$amnt;
+      $this->calculateAmount();
+    }
+    public function submit()
+    {
+      $this->validate();
+        $damaged_part_image=[];
+        foreach ($this->damaged_part_image as $file) {
+          $image = storeFileWithCustomName($file, 'uploads/damaged_part_image');
+          $damaged_part_image[]=$image;
+
+      }
+      $admin = Auth::guard('admin')->user();
+    $adminId = $admin->id;
+      OrderItemReturn::create([
+        'damaged_part_image' => implode(",",$damaged_part_image),
+        'order_item_id' => $this->selected_order->id,
+        'refund_amount' => $this->balance_amnt,
+        'refund_category' => 'deposit_partial_refund',
+        'reason' => $this->reason,
+        'refund_initiated_by' =>  $adminId,
+
+    ]);
+    $this->closeModal();
+    session()->flash('message', 'Balance submitted successfully!');
     }
 
 }
