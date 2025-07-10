@@ -517,6 +517,7 @@
     @if($isModalOpen)
     <div class="side-modal {{ $isModalOpen ? 'open' : '' }}">
         @if($selectedCustomer)
+        <form wire:submit.prevent="submit" enctype="multipart/form-data">
             <div class="m-0 lh-1 border-bottom template-customizer-header position-relative py-4">
                 <div class="d-flex justify-content-start align-items-center customer-name">
                     <div class="avatar-wrapper me-3">
@@ -588,18 +589,39 @@
                           </select>
                       </div>
                       <div class="col-12 mb-3">
+                        <label for="product_id" class="form-label">Port Charge </label>
+                        <input type="number" class="form-control" id="port_charges" wire:model="port_charges" wire:keyup="setPortChareges($event.target.value)">
+
+                    </div>
+                      <div class="col-12 mb-3">
                         <label for="product_id" class="form-label">Deduct Amount </label>
-                        <input type="text" class="form-control"  wire:model="deduct_amounts">
+                        <input type="text" class="form-control"  wire:model="deduct_amounts" readonly>
 
                     </div>
                     <div class="col-12 mb-3">
                       <label for="product_id" class="form-label">Balance Amount </label>
-                      <input type="text" class="form-control"  wire:model="balance_amnt">
+                      <input type="text" class="form-control"  wire:model="balance_amnt" readonly>
 
                   </div>
+                  <div class="col-12 mb-3">
+                    <label for="product_id" class="form-label">Reason </label>
+                   <textarea class="form-control" wire:model="reason"></textarea>
+
+                </div>
+                  <div class="col-12 mb-3">
+                    <label for="product_id" class="form-label">Damaged Part Image </label>
+                    <input type="file" class="form-control"  wire:model="damaged_part_image" multiple accept="image/*">
+
+                </div>
+                <div class="col-12 mb-3 text-end">
+                  <button type="submit" class="btn btn-primary" >
+                    Submit
+                </button>
+              </div>
                     </div>
                 </div>
             </div>
+        </form>
         @endif
     </div>
     @endif
