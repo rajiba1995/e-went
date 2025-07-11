@@ -590,7 +590,12 @@
                       </div>
                       <div class="col-12 mb-3">
                         <label for="product_id" class="form-label">Port Charge </label>
-                        <input type="number" class="form-control" id="port_charges" wire:model="port_charges" wire:keyup="setPortChareges($event.target.value)">
+                        <input type="text" class="form-control" id="port_charges"
+                       wire:model.debounce.3000ms="port_charges"
+                           wire:input="setPortCharges"
+
+
+                        >
 
                     </div>
                       <div class="col-12 mb-3">

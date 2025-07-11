@@ -161,6 +161,7 @@ class RefundSummary extends Component
     public function setOverdueDays($days){
     $per_day_amnt=($this->selected_order->deposit_amount/$this->selected_order->rent_duration );
     $this->over_due_amnts=$per_day_amnt*$days;
+    $this->over_due_days=$days;
     $this->calculateAmount();
     }
     public function bomPartChanged($parts)
@@ -180,11 +181,7 @@ class RefundSummary extends Component
       $this->deduct_amounts=ceil($this->parts_amnt+$this->over_due_amnts+$this->port_charges);
       $this->balance_amnt=($this->selected_order->deposit_amount-$this->deduct_amounts);
     }
-    public function setPortChareges($amnt)
-    {
-      $this->port_charges=$amnt;
-      $this->calculateAmount();
-    }
+
     public function submit()
     {
       $this->validate();
@@ -203,10 +200,21 @@ class RefundSummary extends Component
         'refund_category' => 'deposit_partial_refund',
         'reason' => $this->reason,
         'refund_initiated_by' =>  $adminId,
+        'over_due_days' =>  $this->over_due_days,
+        'over_due_amnt' =>  $this->over_due_amnts,
 
     ]);
     $this->closeModal();
     session()->flash('message', 'Balance submitted successfully!');
+    }
+public function setPortCharges()
+    {
+
+       \Log::info('Port Charges updated:', ['value' => $this->port_charges]);
+
+        // Your calculation or database logic goes here
+        $this->calculateAmount();
+
     }
 
 }
