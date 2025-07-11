@@ -21,6 +21,9 @@ class Order extends Model
     public function subscription(){
         return $this->belongsTo(RentalPrice::class, 'subscription_id', 'id');
     }
+    public function refund_payment(){
+        return $this->hasOne(OrderItemReturn::class, 'order_item_id', 'id');
+    }
     public function payments(){
         return $this->hasMany(Payment::class, 'order_id', 'id');
     }
@@ -32,10 +35,7 @@ class Order extends Model
     {
         return $this->hasOne(AsignedVehicle::class);
     }
-    public function refund_payment()
-    {
-        return $this->hasOne(RefundPayment::class);
-    }
+
     public function exchange_vehicle()
     {
         return $this->hasMany(ExchangeVehicle::class);

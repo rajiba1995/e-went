@@ -7,6 +7,8 @@ use Livewire\WithPagination;
 use App\Models\User;
 use App\Models\Order;
 use App\Models\BomPart;
+use App\Models\OrderItemReturn;
+use App\Models\DamagedPartLog;
 use App\Models\UserKycLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
@@ -19,7 +21,7 @@ class RefundSummary extends Component
     protected $paginationTheme = 'bootstrap';
     public $search = '';
     public $remarks,$field,$document_type,$id,$over_due_days,$bom_parts=[],$balance_amnt=0,$parts_amnt,$order_id,
-    $over_due_amnts=0,$deduct_amounts=0,$port_charges=0,$reason,$damaged_part_image=[];
+    $over_due_amnts=0,$deduct_amounts=0,$port_charges,$reason,$damaged_part_image=[],$damage_parts=[],$return_condition;
     public $active_tab = 1;
     public $customers = [];
     public $selectedCustomer = null; // Stores the selected customer data
@@ -159,7 +161,7 @@ class RefundSummary extends Component
         ]);
     }
     public function setOverdueDays($days){
-    $per_day_amnt=($this->selected_order->deposit_amount/$this->selected_order->rent_duration );
+    $per_day_amnt=($this->selected_order->rental_amount/$this->selected_order->rent_duration );
     $this->over_due_amnts=$per_day_amnt*$days;
     $this->over_due_days=$days;
     $this->calculateAmount();
@@ -168,6 +170,7 @@ class RefundSummary extends Component
     {
       $totalAmnt=0;
       $bom_parts=BomPart::whereIn('id', $parts)->get();
+      $this->damage_parts=$parts;
       foreach($bom_parts as $part)
       {
         $totalAmnt+=$part->part_price;
@@ -193,17 +196,33 @@ class RefundSummary extends Component
       }
       $admin = Auth::guard('admin')->user();
     $adminId = $admin->id;
-      \App\Models\OrderItemReturn::create([
+      OrderItemReturn::create([
         'damaged_part_image' => implode(",",$damaged_part_image),
         'order_item_id' => $this->selected_order->id,
         'refund_amount' => $this->balance_amnt,
         'refund_category' => 'deposit_partial_refund',
-        'reason' => $this->reason,
+        'return_condition' => $this->return_condition,
         'refund_initiated_by' =>  $adminId,
         'over_due_days' =>  $this->over_due_days,
         'over_due_amnt' =>  $this->over_due_amnts,
+        'user_id'=>$this->selected_order->user_id
 
     ]);
+    $damaged_part_logs=[];
+    if(!empty($this->damage_parts))
+    {
+      foreach($this->damage_parts as $bom_part)
+      {
+      $parts=BomPart::findOrFail($bom_part);
+
+      $damaged_part_logs[]=['order_item_id'=>$this->selected_order->id,'bom_part_id'=>$bom_part,'price'=>$parts->part_price,
+                            'log_by'=>$adminId
+
+    ];
+
+    }
+      DamagedPartLog::insert($damaged_part_logs);
+    }
     $this->closeModal();
     session()->flash('message', 'Balance submitted successfully!');
     }

@@ -5,12 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class OrderItemReturn extends Model
+class DamagedPartLog extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'order_item_id', 'return_date', 'return_status', 'return_condition', 'refund_amount','refund_initiated_by',
-        'damaged_part_image','reason','over_due_days','over_due_amnt','return_condition','user_id'
+        'order_item_id', 'bom_part_id', 'price', 'log_by'
     ];
     public function order_item(){
         return $this->belongsTo(OrderItem::class,'order_item_id', 'id');

@@ -591,26 +591,29 @@
                       <div class="col-12 mb-3">
                         <label for="product_id" class="form-label">Port Charge </label>
                         <input type="text" class="form-control" id="port_charges"
-                       wire:model.debounce.3000ms="port_charges"
-                           wire:input="setPortCharges"
+                       wire:model="port_charges" oninput="debounceUpdate()">
 
-
-                        >
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label for="product_id" class="form-label">Overdue Amount </label>
+                        <input type="text" class="form-control"  readonly wire:model="over_due_amnts">
 
                     </div>
                       <div class="col-12 mb-3">
-                        <label for="product_id" class="form-label">Deduct Amount </label>
+                        <label for="product_id" class="form-label">Total Deduct Amount </label>
                         <input type="text" class="form-control"  wire:model="deduct_amounts" readonly>
 
                     </div>
                     <div class="col-12 mb-3">
                       <label for="product_id" class="form-label">Balance Amount </label>
-                      <input type="text" class="form-control"  wire:model="balance_amnt" readonly>
+                      <input type="text" class="form-control  @error('balance_amnt') is-invalid @enderror""  wire:model="balance_amnt" readonly >
+                      @error('balance_amnt') <span class="text-danger">{{ $message }}</span> @enderror
+
 
                   </div>
                   <div class="col-12 mb-3">
-                    <label for="product_id" class="form-label">Reason </label>
-                   <textarea class="form-control" wire:model="reason"></textarea>
+                    <label for="product_id" class="form-label">Return Condition </label>
+                   <textarea class="form-control" wire:model="return_condition"></textarea>
 
                 </div>
                   <div class="col-12 mb-3">
@@ -701,6 +704,14 @@
 
 
 <script>
+  let timeout;
+    function debounceUpdate() {
+        clearTimeout(timeout);
+        timeout = setTimeout(function() {
+            // Trigger Livewire method after 500ms delay
+            @this.call('setPortCharges', document.getElementById('port_charges').value);
+        }, 500);
+    }
   var jq = $.noConflict();
 
 function initChosen() {
