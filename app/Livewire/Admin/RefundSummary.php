@@ -21,7 +21,8 @@ class RefundSummary extends Component
     protected $paginationTheme = 'bootstrap';
     public $search = '';
     public $remarks,$field,$document_type,$id,$over_due_days,$bom_parts=[],$balance_amnt=0,$parts_amnt,$order_id,
-    $over_due_amnts=0,$deduct_amounts=0,$port_charges,$reason,$damaged_part_image=[],$damage_parts=[],$return_condition;
+    $over_due_amnts=0,$deduct_amounts=0,$port_charges,$reason,$damaged_part_image=[],$damage_parts=[],
+    $return_condition,$isProgressModal=0,$status,$order_item_return_id,$isReturnModal=0,$damaged_part_logs=[];
     public $active_tab = 1;
     public $customers = [];
     public $selectedCustomer = null; // Stores the selected customer data
@@ -79,9 +80,28 @@ class RefundSummary extends Component
       ]);
 
     }
+    public function ProgressModal($id)
+    {
+        $this->reset(['reason','status']);
+        $this->order_item_return_id=$id;
+        $this->isProgressModal = 1;
+
+    }
+     public function closeProgressModal()
+    {
+        $this->reset(['reason','status']);
+
+        $this->isProgressModal = 0;
+
+    }
+
+    public function ResetEligibleFromField(){
+         $this->reset(['over_due_days','bom_parts','balance_amnt','parts_amnt']);
+    }
 
     public function closeModal()
     {
+        $this->ResetEligibleFromField();
         $this->isModalOpen = false;
     }
 
@@ -106,6 +126,19 @@ class RefundSummary extends Component
             'balance_amnt'   => 'required|numeric|min:0.01', // must be greater than zero
         ];
     }
+    public function changeReturnStatusRules()
+    {
+        return [
+            'status' => 'required|string|in:processed,confimed,rejected', // status required
+        ];
+    }
+    public function messages()
+{
+    return [
+
+        'reason.required' => 'The remark field is required.',
+    ];
+}
     public function tab_change($value){
         $this->active_tab = $value;
         $this->search = "";
@@ -128,19 +161,28 @@ class RefundSummary extends Component
             ->where('rent_status', 'returned')
             ->orderByDesc('id')
             ->paginate(20);
-        $verified_users = User::with('doc_logs','latest_order','active_vehicle')
-            ->when($this->search, function ($query) {
-                $searchTerm = '%' . $this->search . '%';
-                $query->where(function ($q) use ($searchTerm) {
-                    $q->where('name', 'like', $searchTerm)
-                    ->orWhere('mobile', 'like', $searchTerm)
-                    ->orWhere('email', 'like', $searchTerm)
-                    ->orWhere('customer_id', 'like', $searchTerm);
+
+       $in_progress_data = OrderItemReturn::with('order_item')
+        ->when($this->search, function ($query) {
+            $searchTerm = '%' . $this->search . '%';
+
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereHas('order_item.product', function ($productQuery) use ($searchTerm) {
+                    $productQuery->where('title', 'like', $searchTerm);
                 });
-            })
-            ->where('is_verified', 'verified')
-            ->orderBy('id', 'DESC')
-            ->paginate(20);
+
+                $q->orWhereHas('user', function ($userQuery) use ($searchTerm) {
+                    $userQuery->where('name', 'like', $searchTerm)
+                        ->orWhere('mobile', 'like', $searchTerm)
+                        ->orWhere('email', 'like', $searchTerm)
+                        ->orWhere('customer_id', 'like', $searchTerm);
+                });
+            });
+        })
+        ->orderBy('id', 'DESC')
+        ->where('status', 'in_progress')
+        ->paginate(20);
+
         $rejected_users = User::with('doc_logs')
             ->when($this->search, function ($query) {
                 $searchTerm = '%' . $this->search . '%';
@@ -156,7 +198,7 @@ class RefundSummary extends Component
             ->paginate(20);
         return view('livewire.admin.refund-summary', [
             'eligible_refunds' => $eligible_refunds,
-            'verified_users' => $verified_users,
+            'in_progress_data' => $in_progress_data,
             'rejected_users' => $rejected_users
         ]);
     }
@@ -226,6 +268,22 @@ class RefundSummary extends Component
     $this->closeModal();
     session()->flash('message', 'Balance submitted successfully!');
     }
+    public function ChangeReturnStatus()
+    {
+
+    $this->validate($this->changeReturnStatusRules());
+    $return = OrderItemReturn::findOrFail($this->order_item_return_id);
+
+    // Update the status and remarks (if provided)
+    $return->status = $this->status;
+    $return->reason = $this->reason ?? null; // Set to null if remarks are not provided
+
+    // Save the record
+    $return->save();
+    $this->closeProgressModal();
+    session()->flash('message', 'Status has been changed Successfully !');
+
+    }
 public function setPortCharges()
     {
 
@@ -234,6 +292,22 @@ public function setPortCharges()
         // Your calculation or database logic goes here
         $this->calculateAmount();
 
+    }
+     public function updated($propertyName)
+    {
+        // Run validation whenever any property is updated
+        $this->validateOnly($propertyName);
+    }
+    public function viewReturnModal($order_id,$order_item_id,$customerId)
+    {
+        $this->selected_order = Order::find($order_id);
+        $this->selectedCustomer = User::find($customerId);
+        $this->damaged_part_logs=DamagedPartLog::with('bom_part')->where('order_item_id',$order_id)->get();
+        $this->isReturnModal=1;
+    }
+    public function closeReturnModal()
+    {
+      $this->isReturnModal=0;
     }
 
 }

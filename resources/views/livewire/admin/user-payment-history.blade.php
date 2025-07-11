@@ -146,7 +146,11 @@
                       @if($item->payment_status=="completed")
                         <span class="badge bg-success">Captured</span>
                       @else
-                        <span class="badge bg-danger">{{ucwords($item->payment_status)}}</span>
+                        @if($item->payment_status=="authorized" && !$item->icici_txnID)
+                          <span class="badge bg-danger">Pending</span>
+                        @else
+                        <span class="badge bg-warning">{{ucwords($item->payment_status)}}</span>
+                        @endif
                       @endif
                     </td>
                     <td class="text-center">{{ date('d M y h:i A', strtotime($item->payment_date)) }}</td>

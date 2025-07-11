@@ -23,6 +23,7 @@ class RiderEngagement extends Component
 {
     use WithPagination;
     protected $paginationTheme = 'bootstrap';
+    public $page = 1;
     public $search = '';
     public $remarks,$field,$document_type,$id,$vehicle_model;
     public $active_tab = 1;
@@ -358,6 +359,7 @@ class RiderEngagement extends Component
     public function tab_change($value){
         $this->active_tab = $value;
         $this->search = "";
+        $this->resetPage();
     }
 
     public function confirmDeallocate($order_id){
@@ -461,25 +463,16 @@ class RiderEngagement extends Component
             session()->flash('success', 'The rider has been activated for ride.');
         }
     }
+   public function gotoPage($value, $pageName = 'page')
+    {
+        $this->setPage($value, $pageName);
+        $this->page = $value; 
+    }
+
     public function render()
     {
-         // Query users based on the search term
-        //  $all_users = User::when($this->search, function ($query) {
-        //         $searchTerm = '%' . $this->search . '%';
-        //         $query->where(function ($q) use ($searchTerm) {
-        //             $q->where('name', 'like', $searchTerm)
-        //             ->orWhere('mobile', 'like', $searchTerm)
-        //             ->orWhere('email', 'like', $searchTerm)
-        //             ->orWhere('customer_id', 'like', $searchTerm);
-        //         });
-        //     })
-        //     // ->whereHas('latest_order')
-        //     ->where('is_verified', 'verified')
-        //     ->whereNull('vehicle_assign_status')
-        //     ->orderBy('id', 'DESC')
-        //     ->paginate(20);
-
-         $await_users = User::when($this->search, function ($query) {
+        $searchTerm = '%' . $this->search . '%';
+        $await_users = User::when($this->search, function ($query) {
             $searchTerm = '%' . $this->search . '%';
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'like', $searchTerm)
@@ -520,31 +513,53 @@ class RiderEngagement extends Component
             ->orderBy('id', 'DESC')
             ->paginate(20);
             
-        $active_users = User::when($this->search, function ($query) {
-            $searchTerm = '%' . $this->search . '%';
+        $active_users = User::where('is_verified', 'verified')
+            ->whereHas('active_order')
+            ->when($this->search, function ($query) use ($searchTerm) {
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('name', 'like', $searchTerm)
+                        ->orWhere('mobile', 'like', $searchTerm)
+                        ->orWhere('email', 'like', $searchTerm)
+                        ->orWhere('customer_id', 'like', $searchTerm)
+                        ->orWhereHas('active_vehicle.stock', function ($q2) use ($searchTerm) {
+                            $q2->where('vehicle_number', 'like', $searchTerm)
+                                ->orWhere('vehicle_track_id', 'like', $searchTerm)
+                                ->orWhere('imei_number', 'like', $searchTerm)
+                                ->orWhere('chassis_number', 'like', $searchTerm)
+                                ->orWhere('friendly_name', 'like', $searchTerm)
+                                ->orWhereHas('product', function ($productQuery) use ($searchTerm) {
+                                    $productQuery->where('title', 'like', $searchTerm)
+                                        ->orWhere('types', 'like', $searchTerm)
+                                        ->orWhere('product_sku', 'like', $searchTerm);
+                                });
+                        });
+                });
+            })
+            ->orderBy('id', 'DESC')
+            ->paginate(20);
+            
+        $cancel_requested_users = User::where('is_verified', 'verified')
+        ->whereHas('cancel_requested_order')
+        ->when($this->search, function ($query) use ($searchTerm) {
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'like', $searchTerm)
-                ->orWhere('mobile', 'like', $searchTerm)
-                ->orWhere('email', 'like', $searchTerm)
-                ->orWhere('customer_id', 'like', $searchTerm);
+                    ->orWhere('mobile', 'like', $searchTerm)
+                    ->orWhere('email', 'like', $searchTerm)
+                    ->orWhere('customer_id', 'like', $searchTerm)
+                    ->orWhereHas('active_vehicle.stock', function ($q2) use ($searchTerm) {
+                        $q2->where('vehicle_number', 'like', $searchTerm)
+                            ->orWhere('vehicle_track_id', 'like', $searchTerm)
+                            ->orWhere('imei_number', 'like', $searchTerm)
+                            ->orWhere('chassis_number', 'like', $searchTerm)
+                            ->orWhere('friendly_name', 'like', $searchTerm)
+                            ->orWhereHas('product', function ($productQuery) use ($searchTerm) {
+                                $productQuery->where('title', 'like', $searchTerm)
+                                    ->orWhere('types', 'like', $searchTerm)
+                                    ->orWhere('product_sku', 'like', $searchTerm);
+                            });
+                    });
             });
-        })->whereHas('active_order')
-        ->whereHas('active_vehicle')
-        ->where('is_verified', 'verified')
-        ->orderBy('id', 'DESC')
-        ->paginate(20);
-
-        $cancel_requested_users = User::when($this->search, function ($query) {
-            $searchTerm = '%' . $this->search . '%';
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('name', 'like', $searchTerm)
-                ->orWhere('mobile', 'like', $searchTerm)
-                ->orWhere('email', 'like', $searchTerm)
-                ->orWhere('customer_id', 'like', $searchTerm);
-            });
-        })->whereHas('cancel_requested_order')
-        ->whereHas('active_vehicle')
-        ->where('is_verified', 'verified')
+        })
         ->orderBy('id', 'DESC')
         ->paginate(20);
 
@@ -580,17 +595,19 @@ class RiderEngagement extends Component
         // Merge the collections
         $merged = $all_users->merge($inactive_users)->sortByDesc('id')->values();
 
-        // Paginate manually
-        $page = request()->get('page', 1);
+        // Manual pagination
         $perPage = 20;
-        $all_users = new LengthAwarePaginator(
-            $merged->forPage($page, $perPage),
+        // Get page from the request, fallback to 1 if not present
+        $currentPage = (int) $this->page ?? 1;
+        // dd($currentPage);
+        // Manually paginate the merged collection
+        $all_users = new \Illuminate\Pagination\LengthAwarePaginator(
+            $merged->forPage($currentPage, $perPage),
             $merged->count(),
             $perPage,
-            $page,
+            $currentPage,
             ['path' => request()->url(), 'query' => request()->query()]
         );
-
         $inactive_rider = User::with('doc_logs')
             ->whereDoesntHave('accessToken')
             ->when($this->search, function ($query) {

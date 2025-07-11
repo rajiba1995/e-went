@@ -14,4 +14,7 @@ class DamagedPartLog extends Model
     public function order_item(){
         return $this->belongsTo(OrderItem::class,'order_item_id', 'id');
     }
+    public function bom_part(){
+        return $this->belongsTo(BomPart::class,'bom_part_id', 'id');
+    }
 }
