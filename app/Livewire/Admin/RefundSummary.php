@@ -223,7 +223,6 @@ class RefundSummary extends Component
             'in_progress_data' => $in_progress_data,
             'rejected_users' => $rejected_users,
             'in_processed_data' => $in_processed_data,
-            'test_data' => "12222222"
 
 
         ]);
