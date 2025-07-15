@@ -132,16 +132,28 @@
                                 <i class="ri-user-3-line ri-20px d-sm-none"></i>
                             </button>
                           </li>
-                          <li class="nav-item" role="presentation" wire:click="tab_change(3)">
+                           <li class="nav-item" role="presentation" wire:click="tab_change(3)">
                             <button type="button" class="nav-link waves-effect {{$active_tab==3?"active":""}}" role="tab" data-bs-toggle="tab"
                               data-bs-target="#navs-justified-messages" aria-controls="navs-justified-messages" aria-selected="true">
                               <span class="d-none d-sm-block">
                                 Processed <span
-                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-danger ms-1_5 pt-50">{{count($rejected_users)}}</span>
+                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-danger ms-1_5 pt-50">{{ $in_processed_data->total() }}</span>
                                 </span>
                                 <i class="ri-user-3-line ri-20px d-sm-none"></i>
                             </button>
                           </li>
+                           <li class="nav-item" role="presentation" wire:click="tab_change(5)">
+                            <button type="button" class="nav-link waves-effect {{$active_tab==5?"active":""}}" role="tab" data-bs-toggle="tab"
+                              data-bs-target="#navs-justified-profile" aria-controls="navs-justified-profile" aria-selected="false"
+                              tabindex="-1">
+                              <span class="d-none d-sm-block">
+                                Confirmed <span
+                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-success ms-1_5 pt-50">{{$in_progress_data->total()}}</span>
+                                </span>
+                                <i class="ri-user-3-line ri-20px d-sm-none"></i>
+                            </button>
+                          </li>
+
                           <li class="nav-item" role="presentation" wire:click="tab_change(4)">
                             <button type="button" class="nav-link waves-effect {{$active_tab==3?"active":""}}" role="tab" data-bs-toggle="tab"
                               data-bs-target="#navs-justified-messages" aria-controls="navs-justified-messages" aria-selected="true">
@@ -286,6 +298,96 @@
                                                     </span>
 
                                                 </td>
+                                                <td class="">
+                                                    <button class="btn btn-sm btn-primary text-white mb-0 custom-input-sm ms-2"
+                                                    wire:click="ProgressModal({{ $in_progress->id }})"
+                                                    >
+                                                    Update Status
+                                                </button>
+                                                <button class="btn btn-sm btn-success waves-effect mb-0 custom-input-sm ms-2"
+                          wire:click="viewReturnModal({{ $in_progress->order_item_id }},{{ $in_progress->id}},{{ $in_progress->user->id }})"
+                                                    >
+                                                    View
+                                                </button>
+                                                 <button class="btn btn-sm btn-success waves-effect mt-1 custom-input-sm ms-2"
+                          wire:click="editReturnModal({{ $in_progress->id }})"
+                                                    >
+                                                   <i class="ri-pencil-line"></i>
+
+                                                </button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                                <div class="d-flex justify-content-end mt-3 paginator">
+                                    {{ $in_progress_data->links() }} <!-- Pagination links -->
+                                </div>
+                            </div>
+                        </div>
+                         <div class="tab-pane fade {{$active_tab==5?"active show":""}}" id="navs-justified-profile" role="tabpanel">
+                            <div class="table-responsive p-0">
+                                <table class="table align-items-center mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">SL</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Riders</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Vehicle Model</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Refund Amount</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Refund Initiated By</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Refund Category</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+
+                                        @foreach($in_progress_data as $in_progress_index => $in_progress)
+                                        {{-- {{dd($in_progress)}} --}}
+                                        @php
+                                            $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
+                                            $colorClass = $colors[$in_progress_index % count($colors)]; // Rotate colors based on index
+                                        @endphp
+                                            <tr>
+                                                <td class="align-middle text-center">{{ $in_progress_index + 1 }}</td>
+                                                <td class="sorting_1">
+                                                    <div class="d-flex justify-content-start align-items-center customer-name">
+                                                        <div class="avatar-wrapper me-3">
+                                                            <div class="avatar avatar-sm">
+                                                                @if ($in_progress->user->image)
+                                                                    <img src="{{ asset($in_progress->user->image) }}" alt="Avatar" class="rounded-circle">
+                                                                @else
+                                                                    <div class="avatar-initial rounded-circle {{$colorClass}}">
+                                                                        {{ strtoupper(substr($in_progress->user->name, 0, 1)) }}{{ strtoupper(substr(strrchr($in_progress->user->name, ' '), 1, 1)) }}
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                        <div class="d-flex flex-column">
+                                                            <a href="{{ route('admin.customer.details', $in_progress->user->id) }}"
+                                                                class="text-heading"><span class="fw-medium text-truncate">{{ ucwords($in_progress->user->name) }}</span>
+                                                            </a>
+                                                            <small class="text-truncate">{{ $in_progress->user->email }} </small>
+                                                        <div>
+                                                    </div>
+                                                </td>
+                                                <td class="align-middle text-start">
+                                                   {{ $in_progress->order_item?->product?->title ?? 'N/A' }}
+                                                </td>
+                                                <td class="align-middle text-start">
+                                                   {{env('APP_CURRENCY')}}{{ $in_progress->refund_amount }}
+                                                </td>
+                                                <td class="align-middle text-sm text-center">
+                                                    <div class="d-flex flex-column cursor-pointer">
+                                                        <small class="text-truncate text-success" title="{{ ucwords($in_progress->initiated_by?->name ?? 'N/A') }}">{{ $in_progress->initiated_by->email }} </small>
+                                                        <small class="text-truncate">{{ date('d M y h:i A', strtotime($in_progress->refund_initiated_at)) }}</small>
+                                                    <div>
+                                                </td>
+                                                <td class="align-middle text-sm text-center">
+                                                    <span class="badge bg-label-{{ $in_progress->refund_category == 'deposit_partial_refund' ? 'warning' : ($in_progress->refund_category == 'deposit_full_refund' ? 'success' : 'danger') }} mb-0 text-uppercase">
+                                                        {{ strtoupper(str_replace('_', ' ', $in_progress->refund_category)) }}
+                                                    </span>
+
+                                                </td>
                                                 <td class="align-middle text-end px-4">
                                                     <button class="btn btn-sm btn-primary text-white mb-0 custom-input-sm ms-2"
                                                     wire:click="ProgressModal({{ $in_progress->id }})"
@@ -293,7 +395,7 @@
                                                     Update
                                                 </button>
                                                 <button class="btn btn-sm btn-success waves-effect mb-0 custom-input-sm ms-2"
- wire:click="viewReturnModal({{ $in_progress->order_item_id }},{{ $in_progress->id}},{{ $in_progress->user->id }})"
+                          wire:click="viewReturnModal({{ $in_progress->order_item_id }},{{ $in_progress->id}},{{ $in_progress->user->id }})"
                                                     >
                                                     View
                                                 </button>
@@ -309,87 +411,89 @@
                         </div>
                         <div class="tab-pane fade {{$active_tab==3?"active show":""}}" id="navs-justified-messages" role="tabpanel">
                             <div class="table-responsive p-0">
-                                <table class="table align-items-center mb-0">
+                              <table class="table align-items-center mb-0">
                                     <thead>
                                         <tr>
-                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Customer</th>
-                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Date Of Rejection</th>
-                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Reason For Rejection</th>
-                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Rejected By</th>
-                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Re-Uploaded Status</th>
-                                            <th class="text-end text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle px-4">Actions</th>
+                                            <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">SL</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Riders</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Vehicle Model</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Refund Amount</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Refund Initiated By</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Refund Category</th>
+                                            <th class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-
-                                        @foreach($rejected_users as $k => $r_user)
+                                        @foreach($in_processed_data as $in_progress_index => $in_progress)
                                         @php
-                                            $UserKycLog = App\Models\UserKycLog::where('user_id', $r_user->id)->where('status', 'Rejected')->orderBy('id', 'DESC')->whereDate('created_at', '>=', date('Y-m-d', strtotime($r_user->date_of_rejection)))->get();
-
-                                            $UploadedStatus = App\Models\UserKycLog::where('user_id', $r_user->id)
-                                                ->where('status', 'Re-uploaded')
-                                                ->where('created_at', '>=', $r_user->date_of_rejection)
-                                                ->latest('id')  // More readable than orderBy('id', 'DESC')
-                                                ->exists();
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
-                                            $colorClass = $colors[$k % count($colors)]; // Rotate colors based on index
+                                            $colorClass = $colors[$in_progress_index % count($colors)]; // Rotate colors based on index
                                         @endphp
                                             <tr>
+                                                <td class="align-middle text-center">{{ $in_progress_index + 1 }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center customer-name">
                                                         <div class="avatar-wrapper me-3">
                                                             <div class="avatar avatar-sm">
-                                                                @if ($r_user->image)
-                                                                    <img src="{{ asset($r_user->image) }}" alt="Avatar" class="rounded-circle">
+                                                                @if ($in_progress->user->image)
+                                                                    <img src="{{ asset($in_progress->user->image) }}" alt="Avatar" class="rounded-circle">
                                                                 @else
                                                                     <div class="avatar-initial rounded-circle {{$colorClass}}">
-                                                                        {{ strtoupper(substr($r_user->name, 0, 1)) }}{{ strtoupper(substr(strrchr($r_user->name, ' '), 1, 1)) }}
+                                                                        {{ strtoupper(substr($in_progress->user->name, 0, 1)) }}{{ strtoupper(substr(strrchr($in_progress->user->name, ' '), 1, 1)) }}
                                                                     </div>
                                                                 @endif
                                                             </div>
                                                         </div>
                                                         <div class="d-flex flex-column">
-                                                            <a href="{{ route('admin.customer.details', $r_user->id) }}"
-                                                                class="text-heading"><span class="fw-medium text-truncate">{{ ucwords($r_user->name) }}</span>
+                                                            <a href="{{ route('admin.customer.details', $in_progress->user->id) }}"
+                                                                class="text-heading"><span class="fw-medium text-truncate">{{ ucwords($in_progress->user->name) }}</span>
                                                             </a>
-                                                            <small class="text-truncate">{{$r_user->country_code}} {{ $r_user->mobile }}</small>
+                                                            <small class="text-truncate">{{ $in_progress->user->email }} </small>
                                                         <div>
                                                     </div>
                                                 </td>
-                                                <td class="align-middle text-start">{{$r_user->date_of_rejection?date('d M y h:i A', strtotime($r_user->date_of_rejection)):"N/A"}}</td>
-                                                <td class="align-middle text-start p-3">
-                                                    <div class="bg-white rounded-lg shadow-md p-4 space-y-2 max-w-md">
-                                                        <ul class="list-disc list-inside text-sm text-gray-700">
-                                                            @forelse ($UserKycLog as $reason)
-                                                                <li class="px-2 py-1 rounded-md bg-gray-50 hover:bg-blue-50 transition">{{ $reason->remarks }}</li>
-                                                            @empty
-                                                                <li class="text-gray-500 italic">No remarks available.</li>
-                                                            @endforelse
-                                                        </ul>
-                                                    </div>
+                                                <td class="align-middle text-start">
+                                                   {{ $in_progress->order_item?->product?->title ?? 'N/A' }}
                                                 </td>
+                                                <td class="align-middle text-start">
+                                                   {{env('APP_CURRENCY')}}{{ $in_progress->refund_amount }}
+                                                </td>
+                                                <td class="align-middle text-sm text-center">
+                                                    <div class="d-flex flex-column cursor-pointer">
+                                                        <small class="text-truncate text-success" title="{{ ucwords($in_progress->initiated_by?->name ?? 'N/A') }}">{{ $in_progress->initiated_by->email }} </small>
+                                                        <small class="text-truncate">{{ date('d M y h:i A', strtotime($in_progress->refund_initiated_at)) }}</small>
+                                                    <div>
+                                                </td>
+                                                <td class="align-middle text-sm text-center">
+                                                    <span class="badge bg-label-{{ $in_progress->refund_category == 'deposit_partial_refund' ? 'warning' : ($in_progress->refund_category == 'deposit_full_refund' ? 'success' : 'danger') }} mb-0 text-uppercase">
+                                                        {{ strtoupper(str_replace('_', ' ', $in_progress->refund_category)) }}
+                                                    </span>
 
-                                                <td class="align-middle text-start">
-                                                    {{$r_user->rejectedBy?$r_user->rejectedBy->email:"N/A"}}
                                                 </td>
-                                                <td class="align-middle text-start">
-                                                   @if($UploadedStatus)
-                                                        <span class="badge bg-label-success mb-0 cursor-pointer">Recently Uploaded</span>
-                                                    @else
-                                                        <span class="badge bg-label-danger mb-0 cursor-pointer">Pending</span>
-                                                    @endif
-                                                </td>
-                                               <td class="align-middle text-end px-4">
-                                                    <button class="btn btn-outline-success waves-effect mb-0 custom-input-sm ms-2"
-                                                        wire:click="showCustomerDetails({{ $r_user->id}})">
+                                                <td class="">
+                                                    <button class="btn btn-sm btn-primary text-white mb-0 custom-input-sm ms-2"
+                                                    wire:click="ProgressModal({{ $in_progress->id }})"
+                                                    >
+                                                    Update
+                                                </button>
+                                                <button class="btn btn-sm btn-success waves-effect mb-0 custom-input-sm ms-2"
+                                                  wire:click="viewReturnModal({{ $in_progress->order_item_id }},{{ $in_progress->id}},{{ $in_progress->user->id }})"
+                                                    >
                                                     View
                                                 </button>
+                                                 <button class="btn btn-sm btn-info waves-effect mt-1 custom-input-sm ms-2"
+                                                    wire:click="editReturnModal({{ $in_progress->id }})"
+                                                    >
+                                                    <i class="ri-pencil-line"></i>
+
+                                                </button>
+                                                </td>
                                             </tr>
                                         @endforeach
                                     </tbody>
                                 </table>
                                 <div class="d-flex justify-content-end mt-3 paginator">
-                                    {{ $rejected_users->links() }} <!-- Pagination links -->
+                                    {{ $in_processed_data->links() }} <!-- Pagination links -->
                                 </div>
                             </div>
                         </div>
@@ -596,7 +700,23 @@
                     <label for="product_id" class="form-label">Damaged Part Image </label>
                     <input type="file" class="form-control"  wire:model="damaged_part_image" multiple accept="image/*">
 
+                    <div class="d-flex flex-wrap mt-3">
+                      @if (!empty($damaged_part_images))
+                          @foreach ($damaged_part_images as $img)
+                              <div class="me-2 mb-2" style="width: 120px;">
+                                  <img
+                                      src="{{ asset($img) }}"
+                                      alt="Preview"
+                                      class="img-fluid rounded border"
+                                      style="height: 100px; object-fit: cover;"
+                                  >
+                              </div>
+                          @endforeach
+                      @endif
+                  </div>
+
                 </div>
+
                 <div class="col-12 mb-3 text-end">
                   <button type="submit" class="btn btn-primary" >
                     Submit
@@ -678,7 +798,32 @@
 
 
         @endif
+        @if (!empty($damaged_part_images))
+        <div class="d-flex flex-wrap gap-2">
+    @foreach ($damaged_part_images as $img)
+        <div style="width: 150px;" class="me-2 mb-2">
+            <div class="card academy-content shadow-none border">
+                <div class="p-2">
+                    <img
+                        src="{{ asset($img) }}"
+                        alt="Part Image"
+                        class="img-fluid d-block w-100"
+                        style="height: auto;"
+                    >
+                </div>
+            </div>
+        </div>
+    @endforeach
+</div>
+
+        @endif
+
+</div>
+
     </div>
+
+
+
     @endif
 
 

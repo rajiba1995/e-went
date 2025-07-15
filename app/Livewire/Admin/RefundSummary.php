@@ -22,7 +22,7 @@ class RefundSummary extends Component
     public $search = '';
     public $remarks,$field,$document_type,$id,$over_due_days,$bom_parts=[],$balance_amnt=0,$parts_amnt,$order_id,
     $over_due_amnts=0,$deduct_amounts=0,$port_charges,$reason,$damaged_part_image=[],$damage_parts=[],
-    $return_condition,$isProgressModal=0,$status,$order_item_return_id,$isReturnModal=0,$damaged_part_logs=[];
+    $return_condition,$isProgressModal=0,$status,$order_item_return_id,$isReturnModal=0,$damaged_part_logs=[],$damaged_part_images=[],$bom_part=[];
     public $active_tab = 1;
     public $customers = [];
     public $selectedCustomer = null; // Stores the selected customer data
@@ -69,7 +69,8 @@ class RefundSummary extends Component
 
     public function PartialPayment($order_id,$customerId)
     {
-        $this->reset(['BomParts','selected_order','selectedCustomer']);
+        $this->reset(['BomParts','selected_order','selectedCustomer','order_item_return_id','bom_part',
+        'over_due_days','port_charges','over_due_amnts','deduct_amounts','balance_amnt']);
         $this->selected_order = Order::find($order_id);
         $this->BomParts = BomPart::where('product_id', $this->selected_order->product_id)->orderBy('part_name','ASC')->get();
         $this->selectedCustomer = User::find($customerId);
@@ -183,6 +184,26 @@ class RefundSummary extends Component
         ->where('status', 'in_progress')
         ->paginate(20);
 
+        $in_processed_data = OrderItemReturn::with('order_item')
+        ->when($this->search, function ($query) {
+            $searchTerm = '%' . $this->search . '%';
+
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereHas('order_item.product', function ($productQuery) use ($searchTerm) {
+                    $productQuery->where('title', 'like', $searchTerm);
+                });
+
+                $q->orWhereHas('user', function ($userQuery) use ($searchTerm) {
+                    $userQuery->where('name', 'like', $searchTerm)
+                        ->orWhere('mobile', 'like', $searchTerm)
+                        ->orWhere('email', 'like', $searchTerm)
+                        ->orWhere('customer_id', 'like', $searchTerm);
+                });
+            });
+        })
+        ->orderBy('id', 'DESC')
+        ->where('status', 'processed')
+        ->paginate(20);
         $rejected_users = User::with('doc_logs')
             ->when($this->search, function ($query) {
                 $searchTerm = '%' . $this->search . '%';
@@ -196,10 +217,15 @@ class RefundSummary extends Component
             ->where('is_verified', 'rejected')
             ->orderBy('id', 'DESC')
             ->paginate(20);
+            //echo "<pre>";print_r($in_processed_data->toArray());exit;
         return view('livewire.admin.refund-summary', [
             'eligible_refunds' => $eligible_refunds,
             'in_progress_data' => $in_progress_data,
-            'rejected_users' => $rejected_users
+            'rejected_users' => $rejected_users,
+            'in_processed_data' => $in_processed_data,
+            'test_data' => "12222222"
+
+
         ]);
     }
     public function setOverdueDays($days){
@@ -236,9 +262,28 @@ class RefundSummary extends Component
           $damaged_part_image[]=$image;
 
       }
+     $damaged_part_image= array_merge($damaged_part_image, $this->damaged_part_images);
+
       $admin = Auth::guard('admin')->user();
-    $adminId = $admin->id;
-      OrderItemReturn::create([
+      $adminId = $admin->id;
+
+    if(!empty($this->order_item_return_id))
+    {
+      OrderItemReturn::where('id', $this->order_item_return_id)->update([
+          'damaged_part_image' => implode(",", $damaged_part_image),
+          'refund_amount' => $this->balance_amnt,
+          'refund_category' => 'deposit_partial_refund',
+          'return_condition' => $this->return_condition,
+          'refund_initiated_by' => $adminId,
+          'over_due_days' => $this->over_due_days,
+          'over_due_amnt' => $this->over_due_amnts,
+          'user_id' => $this->selected_order->user_id,
+          'port_charges' => $this->port_charges,
+      ]);
+
+    }
+    else{
+        OrderItemReturn::create([
         'damaged_part_image' => implode(",",$damaged_part_image),
         'order_item_id' => $this->selected_order->id,
         'refund_amount' => $this->balance_amnt,
@@ -247,23 +292,56 @@ class RefundSummary extends Component
         'refund_initiated_by' =>  $adminId,
         'over_due_days' =>  $this->over_due_days,
         'over_due_amnt' =>  $this->over_due_amnts,
-        'user_id'=>$this->selected_order->user_id
+        'user_id'=>$this->selected_order->user_id,
+        'port_charges'=>$this->port_charges
 
     ]);
-    $damaged_part_logs=[];
-    if(!empty($this->damage_parts))
-    {
-      foreach($this->damage_parts as $bom_part)
-      {
-      $parts=BomPart::findOrFail($bom_part);
-
-      $damaged_part_logs[]=['order_item_id'=>$this->selected_order->id,'bom_part_id'=>$bom_part,'price'=>$parts->part_price,
-                            'log_by'=>$adminId
-
-    ];
-
     }
-      DamagedPartLog::insert($damaged_part_logs);
+
+    $damaged_part_logs=[];
+    if(!empty($this->order_item_return_id))
+    {
+      $existing_damages=DamagedPartLog::where('order_item_id',$this->order_id)->pluck('bom_part_id')->toArray();
+     if(!empty($this->damage_parts))
+      {
+        $isSame = (count($existing_damages) === count($this->damage_parts)) && empty(array_diff($existing_damages, $this->damage_parts));
+        if(!$isSame)
+        {
+          DamagedPartLog::where('order_item_id', $this->order_id)->delete();
+
+            foreach($this->damage_parts as $bom_part)
+            {
+            $parts=BomPart::findOrFail($bom_part);
+
+            $damaged_part_logs[]=['order_item_id'=>$this->selected_order->id,'bom_part_id'=>$bom_part,'price'=>$parts->part_price,
+                                  'log_by'=>$adminId
+
+          ];
+
+          }
+            DamagedPartLog::insert($damaged_part_logs);
+
+
+        }
+      }
+    }
+    else{
+          if(!empty($this->damage_parts))
+          {
+            foreach($this->damage_parts as $bom_part)
+            {
+            $parts=BomPart::findOrFail($bom_part);
+
+            $damaged_part_logs[]=['order_item_id'=>$this->selected_order->id,'bom_part_id'=>$bom_part,'price'=>$parts->part_price,
+                                  'log_by'=>$adminId
+
+          ];
+
+          }
+            DamagedPartLog::insert($damaged_part_logs);
+          }
+
+
     }
     $this->closeModal();
     session()->flash('message', 'Balance submitted successfully!');
@@ -302,12 +380,51 @@ public function setPortCharges()
     {
         $this->selected_order = Order::find($order_id);
         $this->selectedCustomer = User::find($customerId);
+        $return = OrderItemReturn::findOrFail($order_item_id);
+
         $this->damaged_part_logs=DamagedPartLog::with('bom_part')->where('order_item_id',$order_id)->get();
+        if(!empty($return->damaged_part_image))
+        {
+        $this->damaged_part_images=explode(",",$return->damaged_part_image);
+
+        }
         $this->isReturnModal=1;
     }
     public function closeReturnModal()
     {
       $this->isReturnModal=0;
+    }
+     public function editReturnModal($return_id)
+    {
+        $this->reset(['BomParts','selected_order','selectedCustomer','order_item_return_id','bom_part','over_due_days',
+        'port_charges','over_due_amnts','deduct_amounts','return_condition','damaged_part_images']);
+        $this->order_item_return_id=$return_id;
+        $return = OrderItemReturn::findOrFail($this->order_item_return_id);
+        $order_id=$return->order_item_id;
+        $customerId=$return->user_id;
+        $this->selected_order = Order::find($order_id);
+        $this->order_id=$order_id;
+        $this->BomParts = BomPart::where('product_id', $this->selected_order->product_id)->orderBy('part_name','ASC')->get();
+        $this->selectedCustomer = User::find($customerId);
+
+        $this->damaged_part_logs=DamagedPartLog::where('order_item_id',$order_id)->get();
+        foreach($this->damaged_part_logs as $damaged_part)
+        {
+           $this->bom_part[]=$damaged_part->bom_part_id;
+        }
+        if(!empty($return->damaged_part_image))
+        {
+        $this->damaged_part_images=explode(",",$return->damaged_part_image);
+        }
+        $this->over_due_days=$return->over_due_days;
+        $this->over_due_amnts=$return->over_due_amnt;
+        $this->port_charges=$return->port_charges;
+        $this->return_condition=$return->return_condition;
+        $this->isModalOpen = true;
+        $this->calculateAmount();
+        $this->dispatch('bind-chosen',[]);
+
+
     }
 
 }
