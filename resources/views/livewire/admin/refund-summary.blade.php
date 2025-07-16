@@ -298,22 +298,20 @@
                                                     </span>
 
                                                 </td>
-                                                <td class="">
-                                                    <button class="btn btn-sm btn-primary text-white mb-0 custom-input-sm ms-2"
-                                                    wire:click="ProgressModal({{ $in_progress->id }})"
-                                                    >
-                                                    Update Status
-                                                </button>
-                                                <button class="btn btn-sm btn-success waves-effect mb-0 custom-input-sm ms-2"
-                          wire:click="viewReturnModal({{ $in_progress->order_item_id }},{{ $in_progress->id}},{{ $in_progress->user->id }})"
+                                                
+                                                <td class="align-middle px-4 mt-2">
+                                                <button class="btn btn-xs btn-success waves-effect waves-light"
+                                                    wire:click="viewReturnModal({{ $in_progress->order_item_id }},{{ $in_progress->id}},{{ $in_progress->user->id }})"
                                                     >
                                                     View
                                                 </button>
-                                                 <button class="btn btn-sm btn-success waves-effect mt-1 custom-input-sm ms-2"
-                          wire:click="editReturnModal({{ $in_progress->id }})"
-                                                    >
-                                                   <i class="ri-pencil-line"></i>
+                                                 <button class="btn btn-xs btn-dark waves-effect waves-light zero_payment"
+                                                        wire:click="editReturnModal({{ $in_progress->id }})">
+                                                   <i class="ri-pencil-line fs-6"></i>
 
+                                                </button>
+                                                    <button class="btn btn-xs btn-primary waves-effect waves-light"
+                                                    wire:click="ProgressModal({{ $in_progress->id }})"> Update Status
                                                 </button>
                                                 </td>
                                             </tr>
@@ -470,23 +468,14 @@
                                                     </span>
 
                                                 </td>
-                                                <td class="">
-                                                    <button class="btn btn-sm btn-primary text-white mb-0 custom-input-sm ms-2"
-                                                    wire:click="ProgressModal({{ $in_progress->id }})"
-                                                    >
-                                                    Update
-                                                </button>
-                                                <button class="btn btn-sm btn-success waves-effect mb-0 custom-input-sm ms-2"
-                                                  wire:click="viewReturnModal({{ $in_progress->order_item_id }},{{ $in_progress->id}},{{ $in_progress->user->id }})"
-                                                    >
-                                                    View
-                                                </button>
-                                                 <button class="btn btn-sm btn-info waves-effect mt-1 custom-input-sm ms-2"
-                                                    wire:click="editReturnModal({{ $in_progress->id }})"
-                                                    >
-                                                    <i class="ri-pencil-line"></i>
-
-                                                </button>
+                                                <td class="align-middle text-end px-4">
+                                                    <button class="btn btn-xs btn-dark waves-effect waves-light zero_payment"
+                                                        wire:click="editReturnModal({{ $in_progress->id }})">
+                                                        <i class="ri-pencil-line fs-6"></i>
+                                                    </button>
+                                                    <button class="btn btn-xs btn-primary waves-effect waves-light" wire:click="ProgressModal({{ $in_progress->id }})">
+                                                        Confirmed Payment
+                                                    </button>
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -662,7 +651,7 @@
                               class="form-select"
                               id="over_due_days"
                               wire:model="over_due_days" wire:change="setOverdueDays($event.target.value)">
-                              <option value="" >Select Overdue</option>
+                              <option value="0">Select Overdue</option>
                               @for ($i = 1; $i <= 20; $i++)
                               <option value="{{ $i }}">{{ $i }}</option>
                               @endfor
@@ -675,17 +664,17 @@
 
                     </div>
                     <div class="col-12 mb-3">
-                        <label for="product_id" class="form-label">Overdue Amount </label>
+                        <label for="product_id" class="form-label">Overdue Amount @if($over_due_days>0) <span class="text-danger"> ({{$per_day_amnt}}*{{$over_due_days}} Days)</span> @endif</label>
                         <input type="text" class="form-control"  readonly wire:model="over_due_amnts">
 
                     </div>
                       <div class="col-12 mb-3">
-                        <label for="product_id" class="form-label">Total Deduct Amount </label>
+                        <label for="product_id" class="form-label">Total Deducted Amount </label>
                         <input type="text" class="form-control"  wire:model="deduct_amounts" readonly>
 
                     </div>
                     <div class="col-12 mb-3">
-                      <label for="product_id" class="form-label">Balance Amount </label>
+                      <label for="product_id" class="form-label">Refunded Amount </label>
                       <input type="text" class="form-control  @error('balance_amnt') is-invalid @enderror"  wire:model="balance_amnt" readonly >
                       @error('balance_amnt') <span class="text-danger">{{ $message }}</span> @enderror
 
@@ -886,7 +875,7 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button class="btn btn-danger"   wire:click="ChangeReturnStatus()">Submit</button>
+                        <button class="btn btn-danger" wire:click="ChangeReturnStatus()">Submit</button>
                     </div>
                 </div>
             </div>

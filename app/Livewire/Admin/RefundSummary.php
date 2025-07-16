@@ -10,6 +10,7 @@ use App\Models\BomPart;
 use App\Models\OrderItemReturn;
 use App\Models\DamagedPartLog;
 use App\Models\UserKycLog;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Livewire\WithFileUploads;
@@ -21,7 +22,7 @@ class RefundSummary extends Component
     protected $paginationTheme = 'bootstrap';
     public $search = '';
     public $remarks,$field,$document_type,$id,$over_due_days,$bom_parts=[],$balance_amnt=0,$parts_amnt,$order_id,
-    $over_due_amnts=0,$deduct_amounts=0,$port_charges,$reason,$damaged_part_image=[],$damage_parts=[],
+    $over_due_amnts=0,$deduct_amounts=0,$per_day_amnt,$port_charges = 0,$reason,$damaged_part_image=[],$damage_parts=[],
     $return_condition,$isProgressModal=0,$status,$order_item_return_id,$isReturnModal=0,$damaged_part_logs=[],$damaged_part_images=[],$bom_part=[];
     public $active_tab = 1;
     public $customers = [];
@@ -228,10 +229,16 @@ class RefundSummary extends Component
         ]);
     }
     public function setOverdueDays($days){
-    $per_day_amnt=($this->selected_order->rental_amount/$this->selected_order->rent_duration );
-    $this->over_due_amnts=$per_day_amnt*$days;
-    $this->over_due_days=$days;
-    $this->calculateAmount();
+       if ($days == 0) {
+            $this->over_due_amnts = 0;
+            $this->over_due_days = 0;
+        } else {
+            $this->per_day_amnt = ($this->selected_order->rental_amount / $this->selected_order->rent_duration);
+            $this->over_due_amnts = $this->per_day_amnt * $days;
+            $this->over_due_days = $days;
+        }
+
+        $this->calculateAmount();
     }
     public function bomPartChanged($parts)
     {
@@ -248,116 +255,117 @@ class RefundSummary extends Component
     }
     public function calculateAmount()
     {
-      $this->deduct_amounts=ceil($this->parts_amnt+$this->over_due_amnts+$this->port_charges);
-      $this->balance_amnt=($this->selected_order->deposit_amount-$this->deduct_amounts);
+        $parts_amnt = (float) $this->parts_amnt;
+        $over_due_amnts = (float) $this->over_due_amnts;
+        $port_charges = (float) $this->port_charges;
+
+        $this->deduct_amounts = ceil($parts_amnt + $over_due_amnts + $port_charges);
+
+        $deposit_amount = (float) $this->selected_order->deposit_amount;
+
+        $this->balance_amnt = $deposit_amount - $this->deduct_amounts;
+
+        //   $this->deduct_amounts=ceil($this->parts_amnt+$this->over_due_amnts+$this->port_charges);
+        //   $this->balance_amnt=($this->selected_order->deposit_amount-$this->deduct_amounts);
     }
 
     public function submit()
     {
-      $this->validate();
-        $damaged_part_image=[];
-        foreach ($this->damaged_part_image as $file) {
-          $image = storeFileWithCustomName($file, 'uploads/damaged_part_image');
-          $damaged_part_image[]=$image;
+        DB::transaction(function () {
+            $this->validate();
 
-      }
-     $damaged_part_image= array_merge($damaged_part_image, $this->damaged_part_images);
+            $damaged_part_image = [];
+            foreach ($this->damaged_part_image as $file) {
+                $image = storeFileWithCustomName($file, 'uploads/damaged_part_image');
+                $damaged_part_image[] = $image;
+            }
+            $damaged_part_image = array_merge($damaged_part_image, $this->damaged_part_images);
 
-      $admin = Auth::guard('admin')->user();
-      $adminId = $admin->id;
+            $admin = Auth::guard('admin')->user();
+            $adminId = $admin->id;
+            if (!empty($this->order_item_return_id)) {
+               
+                OrderItemReturn::where('id', $this->order_item_return_id)->update([
+                    'damaged_part_image' => implode(",", $damaged_part_image),
+                    'refund_amount' => $this->balance_amnt,
+                    'refund_category' => 'deposit_partial_refund',
+                    'return_condition' => $this->return_condition,
+                    'refund_initiated_by' => $adminId,
+                    'over_due_days' => $this->over_due_days,
+                    'over_due_amnt' => $this->over_due_amnts,
+                    'user_id' => $this->selected_order->user_id,
+                    'port_charges' => $this->port_charges,
+                ]);
+            } else {
+                OrderItemReturn::create([
+                    'damaged_part_image' => implode(",", $damaged_part_image),
+                    'order_item_id' => $this->selected_order->id,
+                    'refund_amount' => $this->balance_amnt,
+                    'refund_category' => 'deposit_partial_refund',
+                    'return_condition' => $this->return_condition,
+                    'refund_initiated_by' => $adminId,
+                    'over_due_days' => $this->over_due_days,
+                    'over_due_amnt' => $this->over_due_amnts,
+                    'user_id' => $this->selected_order->user_id,
+                    'port_charges' => $this->port_charges
+                ]);
+            }
 
-    if(!empty($this->order_item_return_id))
-    {
-      OrderItemReturn::where('id', $this->order_item_return_id)->update([
-          'damaged_part_image' => implode(",", $damaged_part_image),
-          'refund_amount' => $this->balance_amnt,
-          'refund_category' => 'deposit_partial_refund',
-          'return_condition' => $this->return_condition,
-          'refund_initiated_by' => $adminId,
-          'over_due_days' => $this->over_due_days,
-          'over_due_amnt' => $this->over_due_amnts,
-          'user_id' => $this->selected_order->user_id,
-          'port_charges' => $this->port_charges,
-      ]);
+            $damaged_part_logs = [];
+            if (!empty($this->order_item_return_id)) {
+                $existing_damages = DamagedPartLog::where('order_item_id', $this->order_id)->pluck('bom_part_id')->toArray();
+                if (!empty($this->damage_parts)) {
+                    $isSame = (count($existing_damages) === count($this->damage_parts)) && empty(array_diff($existing_damages, $this->damage_parts));
+                    if (!$isSame) {
+                        DamagedPartLog::where('order_item_id', $this->order_id)->delete();
 
-    }
-    else{
-        OrderItemReturn::create([
-        'damaged_part_image' => implode(",",$damaged_part_image),
-        'order_item_id' => $this->selected_order->id,
-        'refund_amount' => $this->balance_amnt,
-        'refund_category' => 'deposit_partial_refund',
-        'return_condition' => $this->return_condition,
-        'refund_initiated_by' =>  $adminId,
-        'over_due_days' =>  $this->over_due_days,
-        'over_due_amnt' =>  $this->over_due_amnts,
-        'user_id'=>$this->selected_order->user_id,
-        'port_charges'=>$this->port_charges
+                        foreach ($this->damage_parts as $bom_part) {
+                            $parts = BomPart::findOrFail($bom_part);
 
-    ]);
-    }
+                            $damaged_part_logs[] = [
+                                'order_item_id' => $this->selected_order->id,
+                                'bom_part_id' => $bom_part,
+                                'price' => $parts->part_price,
+                                'log_by' => $adminId
+                            ];
+                        }
+                        DamagedPartLog::insert($damaged_part_logs);
+                    }
+                }
+            } else {
+                if (!empty($this->damage_parts)) {
+                    foreach ($this->damage_parts as $bom_part) {
+                        $parts = BomPart::findOrFail($bom_part);
 
-    $damaged_part_logs=[];
-    if(!empty($this->order_item_return_id))
-    {
-      $existing_damages=DamagedPartLog::where('order_item_id',$this->order_id)->pluck('bom_part_id')->toArray();
-     if(!empty($this->damage_parts))
-      {
-        $isSame = (count($existing_damages) === count($this->damage_parts)) && empty(array_diff($existing_damages, $this->damage_parts));
-        if(!$isSame)
-        {
-          DamagedPartLog::where('order_item_id', $this->order_id)->delete();
+                        $damaged_part_logs[] = [
+                            'order_item_id' => $this->selected_order->id,
+                            'bom_part_id' => $bom_part,
+                            'price' => $parts->part_price,
+                            'log_by' => $adminId
+                        ];
+                    }
+                    DamagedPartLog::insert($damaged_part_logs);
+                }
+            }
 
-            foreach($this->damage_parts as $bom_part)
-            {
-            $parts=BomPart::findOrFail($bom_part);
-
-            $damaged_part_logs[]=['order_item_id'=>$this->selected_order->id,'bom_part_id'=>$bom_part,'price'=>$parts->part_price,
-                                  'log_by'=>$adminId
-
-          ];
-
-          }
-            DamagedPartLog::insert($damaged_part_logs);
-
-
-        }
-      }
-    }
-    else{
-          if(!empty($this->damage_parts))
-          {
-            foreach($this->damage_parts as $bom_part)
-            {
-            $parts=BomPart::findOrFail($bom_part);
-
-            $damaged_part_logs[]=['order_item_id'=>$this->selected_order->id,'bom_part_id'=>$bom_part,'price'=>$parts->part_price,
-                                  'log_by'=>$adminId
-
-          ];
-
-          }
-            DamagedPartLog::insert($damaged_part_logs);
-          }
-
-
-    }
-    $this->closeModal();
-    session()->flash('message', 'Balance submitted successfully!');
+            $this->closeModal();
+            $this->active_tab = 2;
+            session()->flash('message', 'Balance submitted successfully!');
+        });
     }
     public function ChangeReturnStatus()
     {
+        $this->validate($this->changeReturnStatusRules());
+        $return = OrderItemReturn::findOrFail($this->order_item_return_id);
 
-    $this->validate($this->changeReturnStatusRules());
-    $return = OrderItemReturn::findOrFail($this->order_item_return_id);
+        // Update the status and remarks (if provided)
+        $return->status = $this->status;
+        $return->reason = $this->reason ?? null; // Set to null if remarks are not provided
 
-    // Update the status and remarks (if provided)
-    $return->status = $this->status;
-    $return->reason = $this->reason ?? null; // Set to null if remarks are not provided
-
-    // Save the record
-    $return->save();
-    $this->closeProgressModal();
+        // Save the record
+        $return->save();
+        $this->active_tab = 3; //Processed Tab
+        $this->closeProgressModal();
     session()->flash('message', 'Status has been changed Successfully !');
 
     }
