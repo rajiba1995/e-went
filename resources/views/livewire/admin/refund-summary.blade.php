@@ -222,7 +222,7 @@
                                                     {{ date('d M y h:i A', strtotime($un_user->created_at)) }}
                                                 </td>
                                                 <td class="align-middle text-end px-4">
-                                                   <button class="btn btn-xs btn-danger waves-effect waves-light full_payment">Full</button>
+                                                   <button class="btn btn-xs btn-danger waves-effect waves-light full_payment" wire:click="openFullRefundConfirm({{ $un_user->id }})">Full</button>
                                                    <button class="btn btn-xs btn-dark waves-effect waves-light zero_payment">Zero</button>
                                                    <button class="btn btn-xs btn-primary waves-effect waves-light" wire:click="PartialPayment({{$un_user->id}},{{ $un_user->user->id}})">Partial</button>
                                                 </td>
@@ -898,6 +898,7 @@
 @section('page-script')
 <link rel="stylesheet" href="{{ asset('assets/custom_css/component-chosen.css') }}">
 <script src="{{ asset('assets/js/chosen.jquery.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 
 
@@ -919,7 +920,6 @@ function initChosen() {
     // Attach change event
     jq("#bom_part").on('change', function () {
         const selected = jq(this).val(); // Array of selected values
-        console.log(selected);
           //this@.cll('bomPartChanged', selected);
           @this.call('bomPartChanged', selected)
     });
@@ -934,8 +934,25 @@ window.addEventListener('bind-chosen', () => {
 
 // Optional: trigger from Livewire component like:
 // $this->dispatchBrowserEvent('bind-chosen');
+window.addEventListener('openfullrefund', () => {
+    setTimeout(() => {
+    Swal.fire({
+    title: 'Confirm Full Refund',
+    text: "Are you sure you want to issue a full refund to the rider? This action cannot be undone.",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, Refund Now',
+    cancelButtonText: 'Cancel'
+  }).then((result) => {
+    if (result.isConfirmed) {
+    @this.call('bomPartChanged', selected)
 
-
+    } else if (result.dismiss === Swal.DismissReason.cancel) {
+      // Optional action on cancel
+    }
+  });
+    }); // Slight delay to ensure DOM is ready
+});
 
     setTimeout(() => {
         const flashMessage = document.getElementById('modalflashMessage');

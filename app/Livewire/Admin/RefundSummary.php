@@ -425,5 +425,14 @@ public function setPortCharges()
 
 
     }
+   public function openFullRefundConfirm($order_id)
+    {
+
+      $this->order_id=$order_id;
+      $this->selected_order = Order::find($order_id);
+      $this->calculateAmount();
+      $this->dispatch('openfullrefund',[]);
+
+    }
 
 }
