@@ -22,4 +22,7 @@ class OrderItemReturn extends Model
     public function initiated_by(){
         return $this->belongsTo(Admin::class,'refund_initiated_by', 'id');
     }
+    public function damageParts(){
+        return $this->hasMany(DamagedPartLog::class,'order_item_id', 'id');
+    }
 }
