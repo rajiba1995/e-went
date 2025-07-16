@@ -30,7 +30,7 @@
             @endif
         </div>
     </div>
-    
+
     <div class="col-lg-12 col-md-6 mb-md-0 my-4">
         <div class="row">
             <div class="col-12">
@@ -47,15 +47,15 @@
                         </div>
                         <div class="col-lg-6 col-6 my-auto mb-2">
                             <div class="d-flex align-items-center justify-content-end">
-                                <input type="text" wire:model="search" 
-                                       class="form-control border border-2 p-2 custom-input-sm" 
+                                <input type="text" wire:model="search"
+                                       class="form-control border border-2 p-2 custom-input-sm"
                                        placeholder="Search by Reg. No, lot IMEI, chassis number">
-                                <button type="button" wire:click="btn_search" 
+                                <button type="button" wire:click="btn_search"
                                         class="btn btn-success text-white mb-0 custom-input-sm ms-2">
                                     <span class="material-icons">search</span>
                                 </button>
                                 <!-- Refresh Button -->
-                                <button type="button" wire:click="reset_search" 
+                                <button type="button" wire:click="reset_search"
                                         class="btn btn-outline-danger waves-effect mb-0 custom-input-sm ms-2">
                                     <span class="material-icons">refresh</span>
                                 </button>
@@ -74,7 +74,7 @@
                               <span class="d-none d-sm-block">
                                 <i class="tf-icons ri-user-3-line me-1_5"></i>
                                 </i> All <span
-                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-secondary ms-1_5 pt-50">{{count($all_vehicles)}}</span>
+                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-secondary ms-1_5 pt-50">{{$all_vehicles->total()}}</span>
                                 </span>
                                 <i class="ri-user-3-line ri-20px d-sm-none"></i>
                           </li>
@@ -85,7 +85,7 @@
                               <span class="d-none d-sm-block">
                                 <i class="tf-icons ri-user-3-line me-1_5"></i>
                                 </i> Unassigned <span
-                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-success ms-1_5 pt-50">{{count($unassigned_vehicles)}}</span>
+                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-success ms-1_5 pt-50">{{($unassigned_vehicles->total())}}</span>
                                 </span>
                                 <i class="ri-user-3-line ri-20px d-sm-none"></i>
                             </button>
@@ -96,7 +96,7 @@
                               <span class="d-none d-sm-block">
                                 <i class="tf-icons ri-user-3-line me-1_5"></i>
                                 </i> Assigned <span
-                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-danger ms-1_5 pt-50">{{count($assigned_vehicles)}}</span>
+                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-danger ms-1_5 pt-50">{{$assigned_vehicles->total()}}</span>
                                 </span>
                                 <i class="ri-user-3-line ri-20px d-sm-none"></i>
                             </button>
@@ -202,7 +202,7 @@
                                                             </a>
                                                         </span>
                                                     </div>
-                                                   
+
                                                 </td>
                                             </tr>
                                         @endforeach
@@ -280,7 +280,7 @@
                             </div>
                         </div>
                         <div class="tab-pane fade {{$active_tab==3?"active show":""}}" id="navs-justified-messages" role="tabpanel">
-                            
+
                             <div class="table-responsive p-0">
                                 <table class="table align-items-center mb-0">
                                     <thead>
@@ -349,7 +349,7 @@
                             </div>
                         </div>
                         <div class="tab-pane fade {{$active_tab==4?"active show":""}}" id="navs-justified-messages" role="tabpanel">
-                            
+
                             <div class="table-responsive p-0">
                                 <table class="table align-items-center mb-0">
                                     <thead>
@@ -421,7 +421,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="loader-container" wire:loading>
         <div class="loader"></div>
     </div>
