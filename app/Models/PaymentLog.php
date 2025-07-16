@@ -15,5 +15,6 @@ class PaymentLog extends Model
         'response_payload',
         'status',
         'message',
+        'type',
     ];
 }

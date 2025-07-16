@@ -164,56 +164,56 @@
                   </tr>
                     @if(in_array($key, $expandedRows))
                      <tr>
-                      <td colspan="8" style="background: aliceblue;">
-                          @if(isset($transaction_details[$key]['status']) && $transaction_details[$key]['status'] === false)
-                              <p>Error: {{ $transaction_details[$key]['message'] }}</p>
-                          @else
-                              <div>
-                                  <strong>Transaction ID:</strong> {{ $transaction_details[$key]['txnID'] ?? 'N/A' }}<br>
-                                  <strong>Merchant Txn No:</strong> {{ $transaction_details[$key]['merchantTxnNo'] ?? 'N/A' }}<br>
-                                  <strong>Amount:</strong> {{ env('APP_CURRENCY') }}{{ number_format($transaction_details[$key]['amount'], 2) }}<br>
-                                  <strong>Status:</strong> 
-                                    @if($transaction_details[$key]['txnStatus'] == 'SUC')
-                                      Success
-                                    @else
-                                      Failed
-                                    @endif
-                                  <br>
-                                  <strong>Payment Mode:</strong> {{ $transaction_details[$key]['paymentMode'] ?? 'N/A' }}<br>
-                                  <strong>Bank:</strong> {{ $transaction_details[$key]['paymentSubInstType'] ?? 'N/A' }}<br>
-                                  <strong>Auth ID:</strong> {{ $transaction_details[$key]['txnAuthID'] ?? 'N/A' }}<br>
-                                  <strong>Email:</strong> {{ $transaction_details[$key]['customerEmailID'] ?? 'N/A' }}<br>
-                                  <strong>Contact:</strong> {{ $transaction_details[$key]['customerMobileNo'] ?? 'N/A' }}<br>
-                                  <strong>Transaction Time:</strong>
-                                    {{ \Carbon\Carbon::createFromFormat('YmdHis', $transaction_details[$key]['paymentDateTime'])->format('d M Y, h:i:s A') ?? 'N/A' }}
-                                  <br>
-                                  <strong>Transaction Status Code:</strong> {{ $transaction_details[$key]['txnResponseCode'] ?? 'N/A' }}<br>
-                                  <strong>Response Description:</strong> {{ $transaction_details[$key]['txnRespDescription'] ?? 'N/A' }}<br>
-                                </div>
+                        <td colspan="8" style="background: aliceblue;">
+                            @if(isset($transaction_details[$key]['status']) && $transaction_details[$key]['status'] === false)
+                                <p>Error: {{ $transaction_details[$key]['message'] }}</p>
+                            @else
                                 <div>
-                                  @if($transaction_details[$key]['txnStatus'] == 'SUC' && $transaction_details[$key]['txnResponseCode']==='0000')
-                                      @if($item->payment_status != 'completed') 
-                                          {{-- Display error message from session --}}
-                                          @if(session()->has('payment_fetch_error')) 
-                                              <div class="col-auto alert alert-danger mt-3">
-                                                  {{ session('payment_fetch_error') }}
-                                              </div>
-                                          @endif
-
-                                          {{-- Display success message from session --}}
-                                          @if(session()->has('payment_fetch_success')) 
-                                              <div class="col-auto alert alert-success mt-3">
-                                                  {{ session('payment_fetch_success') }}
-                                              </div>
-                                          @endif
-                                        <button type="button" wire:click="FetchPayment('{{$item->icici_merchantTxnNo}}','{{$transaction_details[$key]['txnID']}}','{{$transaction_details[$key]['paymentMode']}}','{{$transaction_details[$key]['paymentDateTime']}}')" class="btn btn-success"> Complete Payment Transaction
-                                      </button>
+                                    <strong>Transaction ID:</strong> {{ $transaction_details[$key]['txnID'] ?? 'N/A' }}<br>
+                                    <strong>Merchant Txn No:</strong> {{ $transaction_details[$key]['merchantTxnNo'] ?? 'N/A' }}<br>
+                                    <strong>Amount:</strong> {{ env('APP_CURRENCY') }}{{ number_format($transaction_details[$key]['amount'], 2) }}<br>
+                                    <strong>Status:</strong> 
+                                      @if($transaction_details[$key]['txnStatus'] == 'SUC')
+                                        Success
+                                      @else
+                                        Failed
                                       @endif
-                                  @endif
-                                </div>
-                          @endif
-                      </td>
-                  </tr>
+                                    <br>
+                                    <strong>Payment Mode:</strong> {{ $transaction_details[$key]['paymentMode'] ?? 'N/A' }}<br>
+                                    <strong>Bank:</strong> {{ $transaction_details[$key]['paymentSubInstType'] ?? 'N/A' }}<br>
+                                    <strong>Auth ID:</strong> {{ $transaction_details[$key]['txnAuthID'] ?? 'N/A' }}<br>
+                                    <strong>Email:</strong> {{ $transaction_details[$key]['customerEmailID'] ?? 'N/A' }}<br>
+                                    <strong>Contact:</strong> {{ $transaction_details[$key]['customerMobileNo'] ?? 'N/A' }}<br>
+                                    <strong>Transaction Time:</strong>
+                                      {{ \Carbon\Carbon::createFromFormat('YmdHis', $transaction_details[$key]['paymentDateTime'])->format('d M Y, h:i:s A') ?? 'N/A' }}
+                                    <br>
+                                    <strong>Transaction Status Code:</strong> {{ $transaction_details[$key]['txnResponseCode'] ?? 'N/A' }}<br>
+                                    <strong>Response Description:</strong> {{ $transaction_details[$key]['txnRespDescription'] ?? 'N/A' }}<br>
+                                  </div>
+                                  <div>
+                                    @if($transaction_details[$key]['txnStatus'] == 'SUC' && $transaction_details[$key]['txnResponseCode']==='0000')
+                                        @if($item->payment_status != 'completed') 
+                                            {{-- Display error message from session --}}
+                                            @if(session()->has('payment_fetch_error')) 
+                                                <div class="col-auto alert alert-danger mt-3">
+                                                    {{ session('payment_fetch_error') }}
+                                                </div>
+                                            @endif
+
+                                            {{-- Display success message from session --}}
+                                            @if(session()->has('payment_fetch_success')) 
+                                                <div class="col-auto alert alert-success mt-3">
+                                                    {{ session('payment_fetch_success') }}
+                                                </div>
+                                            @endif
+                                          <button type="button" wire:click="FetchPayment('{{$item->icici_merchantTxnNo}}','{{$transaction_details[$key]['txnID']}}','{{$transaction_details[$key]['paymentMode']}}','{{$transaction_details[$key]['paymentDateTime']}}')" class="btn btn-success"> Complete Payment Transaction
+                                        </button>
+                                        @endif
+                                    @endif
+                                  </div>
+                            @endif
+                        </td>
+                    </tr>
                     @endif
                 @empty
                     <tr>

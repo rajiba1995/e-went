@@ -9,9 +9,9 @@ class OrderItemReturn extends Model
 {
     use HasFactory;
     protected $fillable = [
-         'order_item_id', 'user_id', 'return_date', 'return_status', 'return_condition', 'refund_amount',
+         'order_item_id', 'user_id', 'return_date', 'return_status', 'return_condition', 'refund_amount','actual_amount',
          'refund_category', 'refund_initiated_by', 'status', 'reason','refund_initiated_at',
-         'damaged_part_image','over_due_days','over_due_amnt','port_charges',
+         'damaged_part_image','over_due_days','over_due_amnt','port_charges','transaction_id','txnStatus',
     ];
     public function order_item(){
         return $this->belongsTo(Order::class,'order_item_id', 'id');

@@ -245,7 +245,7 @@
                         </td>
                         <td class="align-middle text-end px-4">
                           <button class="btn btn-xs btn-danger waves-effect waves-light full_payment">Full</button>
-                          <button class="btn btn-xs btn-dark waves-effect waves-light zero_payment">Zero</button>
+                          <button class="btn btn-xs btn-dark waves-effect waves-light zero_payment" wire:click="ConfirmZeroPayment({{$un_user->id}})">Zero</button>
                           <button class="btn btn-xs btn-primary waves-effect waves-light"
                             wire:click="PartialPayment({{$un_user->id}},{{ $un_user->user->id}})">Partial</button>
                         </td>
@@ -342,19 +342,16 @@
                             {{ strtoupper(str_replace('_', ' ', $in_progress->refund_category)) }}
                           </span>
                         </td>
-
-                        <td class="align-middle px-4">
-                          <button class="btn btn-xs btn-success waves-effect waves-light mb-2"
-                            wire:click="viewReturnModal({{ $in_progress->order_item_id }},{{ $in_progress->id}},{{ $in_progress->user->id }})">
-                            View
-                          </button>
-                          <button class="btn btn-xs btn-dark waves-effect waves-light zero_payment mb-2"
+                         <td class="align-middle text-end px-4">
+                        @if($in_progress->refund_category==="deposit_partial_refund")
+                          <button class="btn btn-xs btn-dark waves-effect waves-light zero_payment"
                             wire:click="editReturnModal({{ $in_progress->id }})">
                             <i class="ri-pencil-line fs-6"></i>
-
                           </button>
-                          <button class="btn btn-xs btn-primary waves-effect waves-light mb-2"
-                            wire:click="ProgressModal({{ $in_progress->id }})"> Update Status
+                          @endif
+                          <button class="btn btn-xs btn-primary waves-effect waves-light"
+                            wire:click="ProgressModal({{ $in_progress->id }})">
+                            Mark as Processed
                           </button>
                         </td>
                       </tr>
@@ -452,13 +449,15 @@
 
                         </td>
                         <td class="align-middle text-end px-4">
-                          <button class="btn btn-sm btn-primary text-white mb-0 custom-input-sm ms-2"
-                            wire:click="ProgressModal({{ $in_processed->id }})">
-                            Update
-                          </button>
-                          <button class="btn btn-sm btn-success waves-effect mb-0 custom-input-sm ms-2"
-                            wire:click="viewReturnModal({{ $in_processed->order_item_id }},{{ $in_processed->id}},{{ $in_processed->user->id }})">
-                            View
+                            @if($in_processed->refund_category==="deposit_partial_refund")
+                                <button class="btn btn-xs btn-dark waves-effect waves-light zero_payment"
+                                    wire:click="editReturnModal({{ $in_processed->id }})">
+                                    <i class="ri-pencil-line fs-6"></i>
+                                </button>
+                            @endif
+                          <button class="btn btn-xs btn-primary waves-effect waves-light"
+                            wire:click="PaymentConfimed({{ $in_processed->id }})">
+                            Mark as Confirmed
                           </button>
                         </td>
                       </tr>
@@ -492,7 +491,7 @@
                           Refund Amount</th>
                         <th
                           class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
-                          Refund Initiated By</th>
+                          Refund Confirmed By</th>
                         <th
                           class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
                           Refund Category</th>
@@ -510,7 +509,7 @@
                       $colorClass = $colors[$in_confirmed_index % count($colors)]; // Rotate colors based on index
                       @endphp
                       <tr>
-                        <td class="align-middle text-center">{{ $in_confirmed_index + 1 }}</td>
+                    <td rowspan="@if(in_array($in_confirmed_index, $expandedRows)) 2 @else 1 @endif">{{$in_confirmed_index+1}}</td>
                         <td class="sorting_1">
                           <div class="d-flex justify-content-start align-items-center customer-name">
                             <div class="avatar-wrapper me-3">
@@ -545,7 +544,7 @@
                               title="{{ ucwords($in_confirmed->initiated_by?->name ?? 'N/A') }}">{{ $in_confirmed->initiated_by->email }}
                             </small>
                             <small
-                              class="text-truncate">{{ date('d M y h:i A', strtotime($in_confirmed->refund_initiated_at)) }}</small>
+                              class="text-truncate">{{ date('d M y h:i A', strtotime($in_confirmed->return_date)) }}</small>
                             <div>
                         </td>
                         <td class="align-middle text-sm text-center">
@@ -556,16 +555,69 @@
 
                         </td>
                         <td class="align-middle text-end px-4">
-                          <button class="btn btn-xs btn-dark waves-effect waves-light zero_payment"
-                            wire:click="editReturnModal({{ $in_confirmed->id }})">
-                            <i class="ri-pencil-line fs-6"></i>
-                          </button>
-                          <button class="btn btn-xs btn-primary waves-effect waves-light"
-                            wire:click="PaymentConfimed({{ $in_confirmed->id }})">
-                            Confirmed Payment
-                          </button>
+
+                            @if($in_confirmed->transaction_id)
+                                @if($in_confirmed->txnStatus == 'SUC')
+                                    <button class="btn btn-xs btn-success waves-effect waves-light">
+                                        <i class="ri-checkbox-circle-line text-dark fs-6"></i>
+                                       <span class="px-2"> CONFIRMED</span>
+                                    </button>
+                                @elseif($in_confirmed->txnStatus == 'REJ')
+                                    <button class="btn btn-xs btn-danger waves-effect waves-light">
+                                        <i class="ri-close-circle-line text-white fs-6"></i>
+                                           <span class="px-2">REJECTED</span>
+                                    </button>
+                                @else
+                                    <button class="btn btn-xs btn-warning waves-effect waves-light">
+                                        <i class="ri-time-line text-dark fs-6"></i>
+                                        <span class="px-2">PENDING</span>
+                                    </button>
+                                @endif
+
+
+                                <a href="javascript:void(0)" wire:click="toggleRow({{ $in_confirmed_index }}, '{{$in_confirmed->transaction_id}}',{{$in_confirmed->refund_amount}})">
+                                <span class="control"></span>
+                                </a>
+                            @endif
                         </td>
                       </tr>
+                      @if(in_array($in_confirmed_index, $expandedRows))
+                        <tr>
+                            <td colspan="8" style="background: aliceblue;">
+                                @if(isset($transaction_details[$in_confirmed_index]['status']) && $transaction_details[$in_confirmed_index]['status'] === false)
+                                    <p>Error: {{ $transaction_details[$in_confirmed_index]['message'] }}</p>
+                                @else
+
+                                    <div>
+                                        <strong>Transaction ID:</strong> {{ $transaction_details[$in_confirmed_index]['txnID'] ?? 'N/A' }}<br>
+                                        <strong>Merchant Txn No:</strong> {{ $transaction_details[$in_confirmed_index]['merchantTxnNo'] ?? 'N/A' }}<br>
+                                        <strong>Amount:</strong> {{ env('APP_CURRENCY') }}{{ number_format($transaction_details[$in_confirmed_index]['amount'] ?? 0, 2) }}<br>
+                                        <strong>Status:</strong> 
+                                        @if($transaction_details[$in_confirmed_index]['txnStatus'] == 'SUC')
+                                            <span class="text-success">Success</span>
+                                        @elseif($transaction_details[$in_confirmed_index]['txnStatus'] == 'REJ')
+                                            <span class="text-danger">Rejected</span>
+                                        @else
+                                            <span class="text-warning">{{ $transaction_details[$in_confirmed_index]['txnStatus'] ?? 'Unknown' }}</span>
+                                        @endif
+                                        <br>
+                                        <strong>Payment Mode:</strong> {{ $transaction_details[$in_confirmed_index]['paymentMode'] ?? 'N/A' }}<br>
+                                        <strong>Bank:</strong> {{ $transaction_details[$in_confirmed_index]['paymentSubInstType'] ?? 'N/A' }}<br>
+                                        <strong>Auth ID:</strong> {{ $transaction_details[$in_confirmed_index]['txnAuthID'] ?? 'N/A' }}<br>
+                                        <strong>Email:</strong> {{ $transaction_details[$in_confirmed_index]['customerEmailID'] ?? 'N/A' }}<br>
+                                        <strong>Contact:</strong> {{ $transaction_details[$in_confirmed_index]['customerMobileNo'] ?? 'N/A' }}<br>
+                                        <strong>Transaction Time:</strong>
+                                        {{ !empty($transaction_details[$in_confirmed_index]['paymentDateTime']) ? \Carbon\Carbon::createFromFormat('YmdHis', $transaction_details[$in_confirmed_index]['paymentDateTime'])->format('d M Y, h:i:s A') : 'N/A' }}
+                                        <br>
+                                        <strong>Transaction Status Code:</strong> {{ $transaction_details[$in_confirmed_index]['txnResponseCode'] ?? 'N/A' }}<br>
+                                        <strong>Txn Response Description:</strong> {{ $transaction_details[$in_confirmed_index]['txnRespDescription'] ?? 'N/A' }}<br>
+                                        <strong>General Response:</strong> {{ $transaction_details[$in_confirmed_index]['respDescription'] ?? 'N/A' }}<br>
+                                    </div>
+                                @endif
+                            </td>
+
+                        </tr>
+                        @endif
                       @endforeach
                     </tbody>
                   </table>
@@ -583,23 +635,26 @@
                     <thead>
                       <tr>
                         <th
-                          class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
-                          Customer</th>
+                          class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
+                          SL</th>
                         <th
                           class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
-                          Date Of Rejection</th>
+                          Riders</th>
                         <th
                           class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
-                          Reason For Rejection</th>
+                          Vehicle Model</th>
                         <th
                           class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
-                          Rejected By</th>
+                          Refund Amount</th>
                         <th
                           class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
-                          Re-Uploaded Status</th>
+                          Refund Initiated By</th>
                         <th
-                          class="text-end text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle px-4">
-                          Actions</th>
+                          class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
+                          Refund Category</th>
+                        <th
+                          class="text-start text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
+                          Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -657,14 +712,12 @@
 
                         </td>
                         <td class="align-middle text-end px-4">
-                          <button class="btn btn-xs btn-dark waves-effect waves-light zero_payment"
-                            wire:click="editReturnModal({{ $in_rejected->id }})">
-                            <i class="ri-pencil-line fs-6"></i>
-                          </button>
-                          <button class="btn btn-xs btn-primary waves-effect waves-light"
-                            wire:click="PaymentConfimed({{ $in_rejected->id }})">
-                            Confirmed Payment
-                          </button>
+                            @if($in_rejected->refund_category==="deposit_partial_refund")
+                                <button class="btn btn-xs btn-success waves-effect waves-light"
+                                    wire:click="viewReturnModal({{$in_rejected->order_item_id}},{{ $in_rejected->id }},{{$in_rejected->user_id}})">
+                                    View Details
+                                </button>
+                            @endif
                         </td>
                       </tr>
                       @endforeach
@@ -984,8 +1037,6 @@
 <script src="{{ asset('assets/js/chosen.jquery.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-
-
 <script>
   let timeout;
 
@@ -1023,8 +1074,6 @@
   // Optional: trigger from Livewire component like:
   // $this->dispatchBrowserEvent('bind-chosen');
 
-
-
   setTimeout(() => {
     const flashMessage = document.getElementById('modalflashMessage');
     if (flashMessage) flashMessage.remove();
@@ -1033,5 +1082,62 @@
     const flashMessage = document.getElementById('flashMessage');
     if (flashMessage) flashMessage.remove();
   }, 3000); // Auto-hide flash message after 3 seconds
+
+    window.addEventListener('showConfirmPayment', function (event) {
+        let itemId = event.detail[0].itemId;
+        Swal.fire({
+            title: "Confirm Payment?",
+            text: "Are you sure you want to confirm this refund payment?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, confirm it!"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                @this.call('updatePaymentData', itemId); // Livewire method
+            }
+        });
+    });
+
+    window.addEventListener('showConfirmZeroPayment', function (event) {
+        let itemId = event.detail[0].itemId;
+        Swal.fire({
+            title: "Confirm Request?",
+            text: "Are you sure you want to confirm this request?",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Yes, confirm it!"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                @this.call('ZeroPayment', itemId); // Livewire method
+            }
+        });
+    });
+
+    //  Handle success
+    window.addEventListener('paymentUpdateSuccess', function (event) {
+        let message = event.detail[0].message;
+        Swal.fire({
+            title: "Confirmed!",
+            text: message,
+            icon: "success",
+            timer: 2000,
+            showConfirmButton: false
+        });
+    });
+
+    //  Handle failure
+    window.addEventListener('paymentUpdateFailed', function (event) {
+         let message = event.detail[0].message;
+        Swal.fire({
+            title: "Error!",
+            text: message,
+            icon: "error",
+            confirmButtonText: "OK"
+        });
+    });
 </script>
 @endsection
