@@ -588,7 +588,7 @@ class AuthController extends Controller
                 $store->status = "Uploaded";
             }
             $store->user_id = $user->id;
-            $store->created_at = date('Y-m-d h:i:s');
+            $store->created_at = now()->toDateTimeString();
             $store->document_type = 'Driving Licence';
             $store->save();
             
@@ -615,7 +615,7 @@ class AuthController extends Controller
                 $store->status = "Uploaded";
             }
             $store->user_id = $user->id;
-            $store->created_at = date('Y-m-d h:i:s');
+            $store->created_at = now()->toDateTimeString();
             $store->document_type = 'Aadhar Card';
             $store->save();
 
@@ -641,7 +641,7 @@ class AuthController extends Controller
                 $store->status = "Uploaded";
             }
             $store->user_id = $user->id;
-            $store->created_at = date('Y-m-d h:i:s');
+            $store->created_at = now()->toDateTimeString();
             $store->document_type = 'Pan Card';
             $store->save();
         }
@@ -668,7 +668,7 @@ class AuthController extends Controller
                 $store->status = "Uploaded";
             }
             $store->user_id = $user->id;
-            $store->created_at = date('Y-m-d h:i:s');
+            $store->created_at = now()->toDateTimeString();
             $store->document_type = 'Current Address Proof';
             $store->save();
            
@@ -690,7 +690,7 @@ class AuthController extends Controller
                 $store->status = "Uploaded";
             }
             $store->user_id = $user->id;
-            $store->created_at = date('Y-m-d h:i:s');
+            $store->created_at = now()->toDateTimeString();
             $store->document_type = 'Passbook';
             $store->save();
         }
@@ -710,13 +710,13 @@ class AuthController extends Controller
                 $store->status = "Uploaded";
             }
             $store->user_id = $user->id;
-            $store->created_at = date('Y-m-d h:i:s');
+            $store->created_at = now()->toDateTimeString();
             $store->document_type = 'Profile Image';
             $store->save();
         }
 
         $user->status = 1;
-        $user->kyc_uploaded_at = date('Y-m-d h:i:s');
+        $user->kyc_uploaded_at = now()->toDateTimeString();
         $user->save();
 
         return response()->json([
@@ -1631,12 +1631,12 @@ class AuthController extends Controller
                             $payment->payment_method = $captureResponse['data']['method'];
                             $payment->currency = $captureResponse['data']['currency'];
                             $payment->payment_status = 'completed';
-                            $payment->transaction_id = date('dmyhis');
+                            $payment->transaction_id = now()->format('dmyHis');
                             $payment->razorpay_order_id = $razorpay_order_id;
                             $payment->razorpay_payment_id = $razorpay_payment_id;
                             $payment->razorpay_signature = $razorpay_signature;
                             $payment->amount = $order->final_amount;
-                            $payment->payment_date = date('Y-m-d h:i:s');
+                            $payment->payment_date = now()->toDateTimeString();
                             $payment->save();
                             if($payment){
                                 // Deposit Amount
@@ -1908,7 +1908,7 @@ class AuthController extends Controller
                 $payment->payment_method = $responseData['method'] ?? 'N/A';
                 $payment->currency = $responseData['currency'] ?? 'INR';
                 $payment->payment_status = $responseData['status'] ?? 'failed';
-                $payment->transaction_id = date('dmyhis');
+                $payment->transaction_id = now()->format('dmyHis');
                 $payment->razorpay_order_id = $responseData['order_id'] ?? '';
                 $payment->razorpay_payment_id = $razorpay_payment_id;
                 $payment->razorpay_signature = $responseData['notes']['razorpay_signature'] ?? '';
@@ -2030,7 +2030,7 @@ class AuthController extends Controller
                     $payment->payment_date = date('Y-m-d h:i:s', strtotime($paymentDateTime));
 
                     $payment->amount = $order->subscription ? $order->subscription->rental_amount : $order->rental_amount;
-                    $payment->payment_date = date('Y-m-d h:i:s');
+                    $payment->payment_date = now()->toDateTimeString();
                     $payment->save();
         
                     if($payment){
@@ -2166,13 +2166,13 @@ class AuthController extends Controller
                             $payment->payment_method = $captureResponse['data']['method'];
                             $payment->currency = $captureResponse['data']['currency'];
                             $payment->payment_status = 'completed';
-                            $payment->transaction_id = date('dmyhis');
+                            $payment->transaction_id = now()->format('dmyHis');
                             $payment->razorpay_order_id = $razorpay_order_id;
                             $payment->razorpay_payment_id = $razorpay_payment_id;
                             $payment->razorpay_signature = $razorpay_signature;
     
                             $payment->amount = $order->subscription ? $order->subscription->rental_amount : $order->rental_amount;
-                            $payment->payment_date = date('Y-m-d h:i:s');
+                            $payment->payment_date = now()->toDateTimeString();
                             $payment->save();
                 
                             if($payment){
@@ -2781,7 +2781,7 @@ class AuthController extends Controller
             $store = new UserKycLog;
             $store->status = "Uploaded";
             $store->user_id = $user->id;
-            $store->created_at = date('Y-m-d h:i:s');
+            $store->created_at = now()->toDateTimeString();
             $store->document_type = 'Aadhar Card';
             $store->save();
         }
@@ -2875,7 +2875,7 @@ class AuthController extends Controller
                                     $store->status = "Uploaded";
                                 }
                                 $store->user_id = $user->id;
-                                $store->created_at = date('Y-m-d h:i:s');
+                                $store->created_at = now()->toDateTimeString();
                                 $store->document_type = 'Aadhar Card';
                                 $store->save();
 
@@ -3007,7 +3007,7 @@ class AuthController extends Controller
                     'icici_merchantTxnNo' => $InitiateSaleResponse['merchantTxnNo'],
                     'payment_status' => 'authorized',
                     'user_id' => $order->user_id,
-                    'payment_date' => date('Y-m-d h:i:s'),
+                    'payment_date' => now()->toDateTimeString(),
                     'amount' => $formattedAmount ?? 0.00,
                 ]);
             } else {
@@ -3016,7 +3016,7 @@ class AuthController extends Controller
                     'user_id' => $order->user_id,
                     'payment_status' => 'authorized',
                     'icici_merchantTxnNo' => $InitiateSaleResponse['merchantTxnNo'],
-                    'payment_date' => date('Y-m-d h:i:s'),
+                    'payment_date' => now()->toDateTimeString(),
                     'amount' => $formattedAmount ?? 0.00,
                 ]);
             }
