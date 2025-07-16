@@ -43,7 +43,7 @@
                     {{ session('message') }}
                 </div>
             @endif
-            
+
             @if(session()->has('error'))
                 <div class="alert alert-danger" id="flashMessage">
                     {{ session('error') }}
@@ -101,7 +101,7 @@
                                 <span class="h6 me-1">Mobile:</span>
                                 <span>{{env('APP_COUNTRY_CODE', 91)}} {{$user->mobile}}</span>
                               </li>
-                          
+
                               <li class="mb-2">
                                 <span class="h6 me-1">Current Location:</span>
                                 <span>{{$user->address}}</span>
@@ -113,10 +113,10 @@
                               @else
                                 <button class="btn btn-danger w-100 waves-effect waves-light">Inactive</button>
                               @endif
-                                
+
                             </div>
 
-                        
+
                             <!-- Edit User Modal -->
                             @if ($showEditModal)
                                   <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background: rgba(0, 0, 0, 0.5);">
@@ -226,7 +226,7 @@
                                             </td>
                                             <td class="">
                                               Start Date:  <small class="">{{ date('d M y h:i A', strtotime($order_item->rent_start_date)) }}</small> <br>
-                                              End Date:  <small class="">{{ date('d M y h:i A', strtotime($order_item->rent_end_date)) }}</small> 
+                                              End Date:  <small class="">{{ date('d M y h:i A', strtotime($order_item->rent_end_date)) }}</small>
                                             </td>
                                             <td class="">
                                                 <span class="badge bg-label-primary me-1 rounded-pill">{{ucwords($order_item->rent_status)}}</span>
@@ -273,14 +273,19 @@
                                                                     </small>
                                                                 @else
                                                                     <small class="text-muted">
-                                                                        Assigned Date : {{ date('d M y h:i A', strtotime($ride_item->assigned_at)) }}
+
+                                                                        Assigned Date : @if (!$ride_item->assigned_at || $ride_item->assigned_at == '1970-01-01 00:00:00')
+    N/A
+@else
+    {{ date('d M y h:i A', strtotime($ride_item->assigned_at)) }}
+@endif
                                                                     </small>
                                                                 @endif
                                                             </td>
 
                                                             <td>
                                                                 <small class="text-muted">
-                                                                    {{ optional($ride_item->order)->rental_amount 
+                                                                    {{ optional($ride_item->order)->rental_amount
                                                                         ? env('APP_CURRENCY') . number_format($ride_item->order->rental_amount)
                                                                         : env('APP_CURRENCY') . '0.00' }}
                                                                 </small>
@@ -374,7 +379,7 @@
                     <div class="card mb-6">
                         <div class="card-body mt-3">
                           <div class="table-responsive">
-                              
+
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>
@@ -421,7 +426,7 @@
                     <div class="card mb-6">
                         <div class="card-body mt-3">
                           <div class="table-responsive">
-                              
+
                                 <table class="table table-striped">
                                     <thead>
                                         <tr>

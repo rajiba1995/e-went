@@ -77,7 +77,7 @@ class CustomerDetails extends Component
     }
     public function getKYC($user_email){
          $data = UserTermsConditions::where('email',$user_email)->first();
-        
+
         if (!$data || !$data->request_id) {
             return response()->json(['error' => 'Request ID not found.'], 404);
         }
@@ -123,7 +123,7 @@ class CustomerDetails extends Component
                 $data->save();
             }
         }
-        
+
     }
 
     public function searchButtonClicked()
@@ -131,13 +131,13 @@ class CustomerDetails extends Component
         $this->resetPage(); // Reset to the first page
     }
 
-   
+
     public function resetSearch()
     {
         $this->reset('search'); // Reset the search term
         $this->resetPage();     // Reset pagination
     }
-    
+
     public function GetDocumentStatus()
     {
         $this->documents = [
@@ -287,7 +287,6 @@ class CustomerDetails extends Component
             $assignedVehicle->model_type = 'assigned';
             $collection->push($assignedVehicle);
         }
-
         $this->ride_history = $collection->merge($exchangeVehicles);
 
     }
@@ -365,14 +364,18 @@ class CustomerDetails extends Component
                 }
             }
             $firstOrder->vehicle?$firstOrder->vehicle->vehicle_id:$firstOrder->exchange_vehicle;
+            $assignedVehicle = AsignedVehicle::whereIn('status', ['assigned', 'overdue'])
+             ->with('stock')
+            ->where('user_id', $this->userId)
+            ->first();
             $userJourney[] = [
                 'title' => 'First Ride Placed',
-                'description' => 'Vehicle  Number: <span class="badge bg-label-success">#' . $vehicle_number . '</span>',
-                'date' => $firstOrder->created_at,
+                'description' => !empty($assignedVehicle->stock)?'Vehicle  Number: <span class="badge bg-label-success">#' . $assignedVehicle->stock->vehicle_number . '</span>':'N/A',
+                'date' => !empty($assignedVehicle)?$assignedVehicle->created_at:'N/A',
             ];
         }
 
-        
+
 
         if ($lastOrder) {
             $vehicle_number = 'N/A';
@@ -388,12 +391,18 @@ class CustomerDetails extends Component
                     $vehicle_number = $returnedExchange->stock->vehicle_number;
                 }
             }
-            $userJourney[] = [
-                'title' => 'Last Ride',
-                'description' => 'Vehicle Number: <span class="badge bg-label-success">#' . $vehicle_number . '</span>',
-                'date' => $lastOrder->created_at,
-            ];
+
         }
+         $exchangeVehicles = ExchangeVehicle::with('stock')
+            ->where('user_id', $this->userId)
+            ->orderBy('id', 'DESC')
+            ->first();
+
+         $userJourney[] = [
+                'title' => 'Last Ride',
+                'description' => !empty($exchangeVehicles->stock)?'Vehicle Number: <span class="badge bg-label-success">#' . $exchangeVehicles->stock->vehicle_number . '</span>':'N/A',
+                'date' =>!empty($exchangeVehicles)?$exchangeVehicles->created_at:'N/A',
+            ];
         if ($totalOrders > 0) {
             $userJourney[] = [
                 'title' => 'Ride Summary',
@@ -409,7 +418,7 @@ class CustomerDetails extends Component
     public function getLocationHistory(){
         return UserLocationLog::where('user_id', $this->userId)->orderBy('id','DESC')->paginate(10);
     }
-    
+
     public function exportCancelHistory()
     {
         $cancelRequests = $this->getCancelRequestHistory();

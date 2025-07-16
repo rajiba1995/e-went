@@ -7,6 +7,8 @@ use Livewire\WithPagination;
 use App\Models\User;
 use App\Models\Order;
 use App\Models\BomPart;
+use App\Models\Payment;
+use App\Models\PaymentLog;
 use App\Models\OrderItemReturn;
 use App\Models\DamagedPartLog;
 use App\Models\UserKycLog;
@@ -32,6 +34,8 @@ class RefundSummary extends Component
     public $isPreviewimageModal = false;
     public $selected_order;
     public $BomParts = [];
+    public $expandedRows = [];
+    public $transaction_details = [];
 
     /**
      * Search button click handler to reset pagination.
@@ -77,10 +81,27 @@ class RefundSummary extends Component
         $this->selectedCustomer = User::find($customerId);
         $this->isModalOpen = true;
         $this->calculateAmount();
-        $this->dispatch('bind-chosen', [
+        $this->dispatch('bind-chosen', []);
+    }
+    public function ConfirmZeroPayment($id){
+        $this->dispatch('showConfirmZeroPayment',['itemId' => $id]);
+    }
+    public function ZeroPayment($order_id){
+        $Order = Order::find($order_id);
+        OrderItemReturn::create([
+            'order_item_id' => $order_id,
+            'refund_amount' => 0,
+            'actual_amount' => $Order->deposit_amount,
+            'refund_category' => 'deposit_no_refund',
+            'refund_initiated_by' => Auth::guard('admin')->user()->id,
+            'refund_initiated_at' => now()->toDateTimeString(),
+            'user_id' => $Order->user_id,
+            'return_status' => 'damaged',
+            'status' => 'in_progress'
+        ]);
 
-      ]);
-
+        $this->active_tab = 2;
+        session()->flash('message', 'request submitted successfully!');
     }
     public function ProgressModal($id)
     {
@@ -96,7 +117,192 @@ class RefundSummary extends Component
         $this->isProgressModal = 0;
 
     }
+    public function PaymentConfimed($id){
+        $this->dispatch('showConfirmPayment',['itemId' => $id]);
+    }
+    public function updatePaymentData($order_return_id){
+        $OrderItemReturn = OrderItemReturn::find($order_return_id);
+        if (!$OrderItemReturn) {
+            $this->dispatch('paymentUpdateFailed', [
+                'message' => 'Refund record not found.'
+            ]);
+            return;
+        }
+        if (!$OrderItemReturn->order_item) {
+            $this->dispatch('paymentUpdateFailed', [
+                'message' => 'Refund payment record not found.'
+            ]);
+            return;
+        }
+        if ($OrderItemReturn->order_item->rent_status !== "returned") {
+            $this->dispatch('paymentUpdateFailed', [
+                'message' => 'Refund cannot be confirmed. Vehicle is not yet returned.'
+            ]);
+            return;
+        }
 
+        $fetchPaymentData = Payment::where('order_id', $OrderItemReturn->order_item_id)
+        ->whereHas('paymentItem', function ($query) {
+            $query->where('type', 'deposit');
+        })
+        ->with(['paymentItem' => function ($query) {
+            $query->where('type', 'deposit')->select('id', 'payment_id', 'type', 'amount');
+        }])
+        ->select('id', 'order_id', 'icici_txnID') // 'icici_txnID' is assumed to be the txn ID
+        ->first();
+
+        if (
+            empty($fetchPaymentData->icici_txnID) || 
+            empty($fetchPaymentData->paymentItem) || 
+            empty($fetchPaymentData->paymentItem[0])
+        ) {
+            $this->dispatch('paymentUpdateFailed', [
+                'message' => 'Refund payment item or transaction ID not found.'
+            ]);
+            return;
+        }
+
+        if ($OrderItemReturn->refund_amount > $fetchPaymentData->paymentItem[0]->amount) {
+            $this->dispatch('paymentUpdateFailed', [
+                'message' => 'Refund cannot be confirmed. It exceeds the deposit amount.'
+            ]);
+            return;
+        }
+
+        $merchantTxnNo = 'RTN'.'_'.$order_return_id.'_'.now()->format('dmyHis');
+        $merchantID = env('ICICI_MARCHANT_ID');
+        $transactionType = 'REFUND';
+        $amount = $OrderItemReturn->refund_amount;
+
+        // Retrieve these from DB if needed
+        $originalTxnNo = $fetchPaymentData->icici_txnID; // Ideally, fetch actual amount from your DB using this txn no
+        // Optional: Only include if the transaction was aggregator-initiated
+        $aggregatorID = env('ICICI_AGGREGATOR_ID');
+        $aggregatorSecretKey = env('ICICI_MARCHANT_SECRET_KEY');
+
+        // Create secureHash (optional but usually required)
+        $hashString = $amount . $merchantID . $merchantTxnNo . $originalTxnNo . $transactionType;
+        $secureHash = hash_hmac('sha256', $hashString, $aggregatorSecretKey);
+
+        $postData = [
+            'merchantID'       => $merchantID,
+            'merchantTxnNo'    => $merchantTxnNo,
+            'originalTxnNo'    => $originalTxnNo,
+            'transactionType'  => $transactionType,
+            'amount'           => $amount,
+            'secureHash'       => $secureHash,
+            // Only include aggregatorID if needed
+            // 'aggregatorID'     => $aggregatorID,
+        ];
+        // Make cURL request
+        $ch = curl_init(env('ICICI_PAYMENT_CHECK_STATUS_BASH_URL'));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded',
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE); // Capture HTTP response code
+        curl_close($ch);
+        if ($httpCode == 200) {
+            $responseData = json_decode($response, true); // Convert JSON string to associative array
+            if($responseData['responseCode']=='P1000'){
+                PaymentLog::create([
+                    'gateway' => 'ICICI',
+                    'type' => 'refund',
+                    'transaction_id' => $responseData['txnID'] ?? null,
+                    'merchant_txn_no' => $responseData['merchantTxnNo'] ?? null,
+                    'response_payload' => $response, // raw JSON string
+                    'status' => $responseData['responseCode'] ?? null,
+                    'message' => $responseData['respDescription'] ?? null,
+                ]);
+                $OrderItemReturn->transaction_id = $responseData['txnID'] ?? null;
+                $OrderItemReturn->return_date = now()->toDateTimeString();
+                $OrderItemReturn->status = 'confimed';
+                $OrderItemReturn->save();
+
+                $this->dispatch('paymentUpdateSuccess', [
+                    'message' => 'The refund payment has been marked as confirmed.'
+                ]);
+                $this->active_tab = 4;//Confimed Tab
+            }else{
+                  $this->dispatch('paymentUpdateFailed', [
+                    'message' => $responseData['respDescription']
+                ]);
+            }
+        } else {
+            $this->dispatch('paymentUpdateFailed', [
+                'message' => json_decode($response, true)
+            ]);
+        }
+    }
+
+    public function toggleRow($key, $merchantTxnNo,$amount)
+    {
+        $this->transaction_details[$key] = $this->paymentFetch($merchantTxnNo,$amount);
+        if(!isset($this->transaction_details[$key]['status'])){
+            // if($this->transaction_details[$key]['txnStatus']==="SUC"){
+            $OrderItemReturn = OrderItemReturn::where('transaction_id',$merchantTxnNo)->first();
+            $OrderItemReturn->txnStatus = $this->transaction_details[$key]['txnStatus'];
+            $OrderItemReturn->save();
+            // }
+        }
+        if (in_array($key, $this->expandedRows)) {
+            $this->expandedRows = array_diff($this->expandedRows, [$key]);
+        } else {
+            $this->expandedRows[] = $key;
+        }
+    }
+    public function paymentFetch($merchantTxnNo,$amount)
+    { 
+        $merchantID = env('ICICI_MARCHANT_ID');
+        $transactionType = 'STATUS';
+
+        // Retrieve these from DB if needed
+        $originalTxnNo = $merchantTxnNo; // Ideally, fetch actual amount from your DB using this txn no
+        // Optional: Only include if the transaction was aggregator-initiated
+        $aggregatorID = env('ICICI_AGGREGATOR_ID');
+        $aggregatorSecretKey = env('ICICI_MARCHANT_SECRET_KEY');
+
+        // Create secureHash (optional but usually required)
+        $hashString = $amount . $merchantID . $merchantTxnNo . $originalTxnNo . $transactionType;
+        $secureHash = hash_hmac('sha256', $hashString, $aggregatorSecretKey);
+
+        $postData = [
+            'merchantID'       => $merchantID,
+            'merchantTxnNo'    => $merchantTxnNo,
+            'originalTxnNo'    => $originalTxnNo,
+            'transactionType'  => $transactionType,
+            'amount'           => $amount,
+            'secureHash'       => $secureHash,
+            // Only include aggregatorID if needed
+            // 'aggregatorID'     => $aggregatorID,
+        ];
+
+        // Make cURL request
+        $ch = curl_init(env('ICICI_PAYMENT_CHECK_STATUS_BASH_URL'));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Content-Type: application/x-www-form-urlencoded',
+        ]);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+
+       $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE); // Capture HTTP response code
+        curl_close($ch);
+        if ($httpCode == 200) {
+            return json_decode($response, true);
+        } else {
+            return [
+                'status' => false,
+                'message' => "Failed to capture payment.",
+                'error' => json_decode($response, true)
+            ];
+        }
+    }
     public function ResetEligibleFromField(){
          $this->reset(['over_due_days','bom_parts','balance_amnt','parts_amnt']);
     }
@@ -326,10 +532,12 @@ class RefundSummary extends Component
                     'port_charges' => $this->port_charges,
                 ]);
             } else {
+                $order = Order::where('id',$this->selected_order->id)->first();
                 OrderItemReturn::create([
                     'damaged_part_image' => implode(",", $damaged_part_image),
                     'order_item_id' => $this->selected_order->id,
                     'refund_amount' => $this->balance_amnt,
+                    'actual_amount' => $order->deposit_amount,
                     'refund_category' => 'deposit_partial_refund',
                     'return_condition' => $this->return_condition,
                     'refund_initiated_by' => $adminId,

@@ -53,7 +53,6 @@ class UserPaymentHistory extends Component
 
         // Retrieve these from DB if needed
         $originalTxnNo = $merchantTxnNo; // Ideally, fetch actual amount from your DB using this txn no
-
         // Optional: Only include if the transaction was aggregator-initiated
         $aggregatorID = env('ICICI_AGGREGATOR_ID');
         $aggregatorSecretKey = env('ICICI_MARCHANT_SECRET_KEY');
