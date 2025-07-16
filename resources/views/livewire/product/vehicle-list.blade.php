@@ -145,9 +145,10 @@
                                         </tr>
                                     </thead>
                                     <tbody>
+
                                         @foreach($all_vehicles as $all_index => $all_item)
                                             <tr>
-                                                <td class="align-middle text-center">{{ $all_index + 1 }}</td>
+                                                <td class="align-middle text-center">{{ $all_vehicles->firstItem()+$all_index  }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center product-name">
                                                         <div class="d-flex flex-column">
@@ -231,7 +232,7 @@
                                     <tbody>
                                         @foreach($unassigned_vehicles as $unassigned_index => $unassigned_item)
                                             <tr>
-                                                <td class="align-middle text-center">{{ $unassigned_index + 1 }}</td>
+                                                <td class="align-middle text-center">{{ $unassigned_vehicles->firstItem()+$unassigned_index }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center product-name">
                                                         <div class="d-flex flex-column">
@@ -298,7 +299,7 @@
                                     <tbody>
                                         @foreach($assigned_vehicles as $assigned_index => $assigned_item)
                                             <tr>
-                                                <td class="align-middle text-center">{{ $assigned_index + 1 }}</td>
+                                                <td class="align-middle text-center">{{ $assigned_vehicles->firstItem()+$assigned_index }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center product-name">
                                                         <div class="d-flex flex-column">
@@ -365,7 +366,7 @@
                                     <tbody>
                                         @foreach($overdue_vehicles as $overdue_index => $overdue_item)
                                             <tr>
-                                                <td class="align-middle text-center">{{ $overdue_index + 1 }}</td>
+                                                <td class="align-middle text-center">{{ $overdue_vehicles->firstItem()+$overdue_index }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center product-name">
                                                         <div class="d-flex flex-column">

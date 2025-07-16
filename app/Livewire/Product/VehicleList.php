@@ -26,7 +26,7 @@ class VehicleList extends Component
     }
     public function btn_search()
     {
-      
+
     }
 
 
@@ -48,6 +48,10 @@ class VehicleList extends Component
     public function tab_change($value){
         $this->active_tab = $value;
         $this->reset_search();
+        $this->resetPage('all_vehicles');
+        $this->resetPage('assigned_vehicles');
+        $this->resetPage('unassigned_vehicles');
+        $this->resetPage('overdue_vehicles');
     }
     public function render()
     {
@@ -65,8 +69,7 @@ class VehicleList extends Component
         })
         ->orderBy('id', 'DESC')
         ->orderBy('product_id', 'DESC')
-        ->paginate(20);
-
+        ->paginate(20,['*'],'all_vehicles');
         // Fetch only assigned vehicles (having an entry in the assigned_vehicles table)
         $assigned_vehicles = Stock::with('assignedVehicle')
         ->whereHas('assignedVehicle') // Ensures only assigned vehicles are fetched
@@ -82,9 +85,9 @@ class VehicleList extends Component
         })
         ->orderBy('id', 'DESC')
         ->orderBy('product_id', 'DESC')
-        ->paginate(20);
-        
-        
+        ->paginate(20, ['*'], 'assigned_vehicles');
+
+
         $unassigned_vehicles = Stock::whereDoesntHave('assignedVehicle', function ($query) {
             $query->whereIn('status', ['assigned','sold']); // Ensure it's truly unassigned
         })->whereDoesntHave('overdueVehicle', function ($query) {
@@ -103,9 +106,9 @@ class VehicleList extends Component
             });
         })
         ->orderBy('id', 'DESC')
-        ->paginate(20);
+        ->paginate(20,['*'], 'unassigned_vehicles');
 
-        
+
         $overdue_vehicles = Stock::with('overdueVehicle')
         ->whereHas('overdueVehicle') // Ensures only assigned vehicles are fetched
         ->when($this->model, function ($query) {
@@ -120,7 +123,7 @@ class VehicleList extends Component
         })
         ->orderBy('id', 'DESC')
         ->orderBy('product_id', 'DESC')
-        ->paginate(20);
+        ->paginate(20,['*'], 'overdue_vehicles');
 
         return view('livewire.product.vehicle-list', [
             'all_vehicles' => $all_vehicles,
@@ -129,4 +132,5 @@ class VehicleList extends Component
             'overdue_vehicles' => $overdue_vehicles,
         ]);
     }
+
 }

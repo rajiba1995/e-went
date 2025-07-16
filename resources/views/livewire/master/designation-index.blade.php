@@ -53,7 +53,7 @@
                 <tbody>
                     @foreach($designations as $k => $designation)
                     <tr>
-                        <td class="align-middle text-center">{{ $k + 1 }}</td>
+                        <td class="align-middle text-center">{{ $k + $designations->firstItem() }}</td>
 
                         {{-- Display Banner Title --}}
                         <td class="align-middle text-center">{{ ucwords($designation->name) }}</td>

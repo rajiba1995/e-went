@@ -47,7 +47,7 @@
                         </div>
                     </form>
                 </div>
-                
+
             </div>
         </div>
     </div>
@@ -62,7 +62,7 @@
                                     {{ session('message') }}
                                 </div>
                             @endif
-                            
+
                             @if(session()->has('error'))
                                 <div class="alert alert-danger">
                                     {{ session('error') }}
@@ -74,15 +74,15 @@
                             </div>
                             <div class="col-lg-6 col-5 my-auto text-end">
                                 <div class="d-flex align-items-center">
-                                    <input type="text" wire:model.debounce.300ms="search" 
-                                           class="form-control border border-2 p-2 custom-input-sm" 
+                                    <input type="text" wire:model.debounce.300ms="search"
+                                           class="form-control border border-2 p-2 custom-input-sm"
                                            placeholder="Search here...">
-                                    <button type="button" wire:click="searchButtonClicked" 
+                                    <button type="button" wire:click="searchButtonClicked"
                                             class="btn btn-dark text-white mb-0 custom-input-sm ms-2">
                                         <span class="material-icons">search</span>
                                     </button>
                                     <!-- Refresh Button -->
-                                    <button type="button" wire:click="resetSearch" 
+                                    <button type="button" wire:click="resetSearch"
                                             class="btn btn-danger text-white mb-0 custom-input-sm ms-2 btn-sm">
                                             <i class="ri-restart-line"></i>
                                     </button>
@@ -113,7 +113,7 @@
                                     <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
                                         Available Quantity
                                     </th>
-                                    
+
                                     <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 align-middle">
                                        Action
                                     </th>
@@ -126,17 +126,17 @@
                                 @foreach($stocks as $k => $stock)
                                     @if($stock->product)
                                         <tr>
-                                            <td class="align-middle text-center">{{$sl }}</td>
+                                            <td class="align-middle text-center">{{$stocks->firstItem()+ $k }}</td>
                                             <td class="sorting_1" width="25%">
                                                 <div class="d-flex justify-content-start align-items-center product-name">
                                                     <div class="avatar-wrapper me-4">
                                                         <div class="avatar rounded-2 bg-label-secondary">
-                                                            <img 
-                                                                src="{{ $stock->product && $stock->product->image ? asset($stock->product->image) : asset('assets/img/default-product.webp') }}" 
-                                                                alt="Product-9" 
+                                                            <img
+                                                                src="{{ $stock->product && $stock->product->image ? asset($stock->product->image) : asset('assets/img/default-product.webp') }}"
+                                                                alt="Product-9"
                                                                 class="rounded-2">
                                                         </div>
-                                                        
+
                                                     </div>
                                                     <div class="d-flex flex-column">
                                                         <span class="text-heading fw-medium"> {{ $stock->product?ucwords($stock->product->title):"" }}</span>
@@ -153,7 +153,7 @@
                                             <td class="text-center">
                                                 {{GetProductWiseAvailableStock($stock->product_id)}}
                                             </td>
-                                            <td class="text-center"> 
+                                            <td class="text-center">
                                                 <a href="{{route('admin.product.stocks.vehicle', $stock->product_id)}}">
                                                     <span class="control"></span>
                                                 </a>

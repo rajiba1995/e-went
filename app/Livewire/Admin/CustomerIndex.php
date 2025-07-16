@@ -84,7 +84,7 @@ class CustomerIndex extends Component
         $this->isRejectModal = true;
     }
     public function OpenPreviewImage($front_image, $back_image,$document_type)
-    {   
+    {
         $this->preview_front_image = $front_image;
         $this->preview_back_image = $back_image;
         $this->document_type = $document_type;
@@ -96,7 +96,7 @@ class CustomerIndex extends Component
         if($user){
 
             // if($user->driving_licence_status!=2){
-                
+
             // }
             if($status=="verified"){
                 if($user->aadhar_card_status!=2){
@@ -119,8 +119,8 @@ class CustomerIndex extends Component
                     session()->flash('error_kyc_message', 'Rider image is not verified. Please verify the rider image.');
                     return false;
                 }
-                
-                    
+
+
                 $user->kyc_uploaded_at = date('Y-m-d h:i:s');
                 $user->kyc_verified_by = Auth::guard('admin')->user()->id;
                 $user->is_verified = "verified";
@@ -192,6 +192,10 @@ class CustomerIndex extends Component
     public function tab_change($value){
         $this->active_tab = $value;
         $this->search = "";
+        $this->resetPage('unverified_users');
+        $this->resetPage('verified_users');
+        $this->resetPage('rejected_users');
+
     }
     public function render()
     {
@@ -207,7 +211,7 @@ class CustomerIndex extends Component
             })->with('doc_logs')
             ->where('is_verified', 'unverified')
             ->orderBy('id', 'DESC')
-            ->paginate(20);
+            ->paginate(20,['*'],'unverified_users');
         $verified_users = User::with('doc_logs','latest_order','active_vehicle')
             ->when($this->search, function ($query) {
                 $searchTerm = '%' . $this->search . '%';
@@ -220,7 +224,7 @@ class CustomerIndex extends Component
             })
             ->where('is_verified', 'verified')
             ->orderBy('id', 'DESC')
-            ->paginate(20);
+            ->paginate(20,['*'],'verified_users');
         $rejected_users = User::with('doc_logs')
             ->when($this->search, function ($query) {
                 $searchTerm = '%' . $this->search . '%';
@@ -233,7 +237,7 @@ class CustomerIndex extends Component
             })
             ->where('is_verified', 'rejected')
             ->orderBy('id', 'DESC')
-            ->paginate(20);
+            ->paginate(20,['*','rejected_users']);
         return view('livewire.admin.customer-index', [
             'unverified_users' => $unverified_users,
             'verified_users' => $verified_users,

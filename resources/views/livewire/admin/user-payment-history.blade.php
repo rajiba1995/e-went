@@ -14,9 +14,9 @@
                   @endif
                 <div class="col-auto">
                   <label class="form-label text-uppercase small mb-1">Export Type</label>
-                  <select 
-                    wire:model="export_type" 
-                    class="form-select border border-2 p-2 custom-input-sm" 
+                  <select
+                    wire:model="export_type"
+                    class="form-select border border-2 p-2 custom-input-sm"
                     wire:change="updateFilters('export_type', $event.target.value)">
                     <option value="" selected hidden>Select type</option>
                     <option value="deposit">Export For Deposit Amount</option>
@@ -29,7 +29,7 @@
           </div>
 
           <div class="row mb-3 g-2 align-items-end">
-            
+
             <!-- Rider Filter -->
             <div class="col-md-2">
               <label for="rider" class="form-label text-uppercase small">Select Riders</label>
@@ -40,7 +40,7 @@
                   @endforeach
               </select>
             </div>
-      
+
             <!-- Product Type -->
             <div class="col-md-2">
               <label class="form-label text-uppercase small">Product Type</label>
@@ -51,7 +51,7 @@
                   @endforeach
               </select>
             </div>
-      
+
             <!-- Payment Status -->
             <div class="col-md-2">
               <label class="form-label text-uppercase small">Payment Status</label>
@@ -62,13 +62,13 @@
                   @endforeach
               </select>
             </div>
-      
+
             <!-- Start Date -->
             <div class="col-md-2">
               <label class="form-label text-uppercase small">Start Date</label>
               <input type="date" wire:model="start_date" wire:change="updateFilters('start_date', $event.target.value)" class="border border-2 p-2 custom-input-sm form-control">
             </div>
-      
+
             <!-- End Date -->
             <div class="col-md-2">
               <label class="form-label text-uppercase small">End Date</label>
@@ -88,7 +88,7 @@
             </div>
           </div>
         </div>
-      
+
         <div class="card-body px-0 pb-2">
           <div class="table-responsive p-0">
             <table class="table align-items-center mb-0 product-list">
@@ -112,7 +112,7 @@
                       $colorClass = $colors[$key % count($colors)]; // Rotate colors based on index
                   @endphp
                   <tr>
-                    <td rowspan="@if(in_array($key, $expandedRows)) 2 @else 1 @endif">{{$key+1}}</td>
+                    <td rowspan="@if(in_array($key, $expandedRows)) 2 @else 1 @endif">{{$key+ $data->firstItem()}}</td>
                     <td>
                         @if($item->user)
                           <div class="d-flex justify-content-start align-items-center customer-name">
@@ -172,7 +172,7 @@
                                   <strong>Transaction ID:</strong> {{ $transaction_details[$key]['txnID'] ?? 'N/A' }}<br>
                                   <strong>Merchant Txn No:</strong> {{ $transaction_details[$key]['merchantTxnNo'] ?? 'N/A' }}<br>
                                   <strong>Amount:</strong> {{ env('APP_CURRENCY') }}{{ number_format($transaction_details[$key]['amount'], 2) }}<br>
-                                  <strong>Status:</strong> 
+                                  <strong>Status:</strong>
                                     @if($transaction_details[$key]['txnStatus'] == 'SUC')
                                       Success
                                     @else
@@ -192,16 +192,16 @@
                                 </div>
                                 <div>
                                   @if($transaction_details[$key]['txnStatus'] == 'SUC' && $transaction_details[$key]['txnResponseCode']==='0000')
-                                      @if($item->payment_status != 'completed') 
+                                      @if($item->payment_status != 'completed')
                                           {{-- Display error message from session --}}
-                                          @if(session()->has('payment_fetch_error')) 
+                                          @if(session()->has('payment_fetch_error'))
                                               <div class="col-auto alert alert-danger mt-3">
                                                   {{ session('payment_fetch_error') }}
                                               </div>
                                           @endif
 
                                           {{-- Display success message from session --}}
-                                          @if(session()->has('payment_fetch_success')) 
+                                          @if(session()->has('payment_fetch_success'))
                                               <div class="col-auto alert alert-success mt-3">
                                                   {{ session('payment_fetch_success') }}
                                               </div>
@@ -224,7 +224,7 @@
                       </td>
                     </tr>
                 @endforelse
-                  
+
               </tbody>
             </table>
             <div class="d-flex justify-content-end mt-3 paginator">

@@ -26,7 +26,7 @@
                                     {{ session('message') }}
                                 </div>
                             @endif
-                            
+
                             @if(session()->has('error'))
                                 <div class="alert alert-danger">
                                     {{ session('error') }}
@@ -36,10 +36,10 @@
                         <div class="row">
                             <div class="col-lg-12 d-flex justify-content-end my-auto">
                                 <div class="d-flex align-items-center">
-                                    <input type="text" wire:model.debounce.300ms="search" 
-                                           class="form-control border border-2 p-2 custom-input-sm" 
+                                    <input type="text" wire:model.debounce.300ms="search"
+                                           class="form-control border border-2 p-2 custom-input-sm"
                                            placeholder="Search here...">
-                                        <button type="button" wire:click="searchButtonClicked" 
+                                        <button type="button" wire:click="searchButtonClicked"
                                                 class="btn btn-dark text-white mb-0 custom-input-sm ms-2">
                                             <span class="material-icons">search</span>
                                         </button>
@@ -80,7 +80,7 @@
                                         $colorClass = $colors[$k % count($colors)]; // Rotate colors based on index
                                     @endphp
                                     <tr>
-                                        <td class="align-middle text-center">{{ $k + 1 }}</td>
+                                        <td class="align-middle text-center">{{ $employees->firstItem()+$k }}</td>
                                         <td class="sorting_1" width="25%">
                                             <div class="d-flex justify-content-start align-items-center customer-name">
                                                 <div class="avatar-wrapper me-3">
@@ -105,13 +105,13 @@
                                         <td class="align-middle price-details text-center">
                                             {{$employee->designationData?$employee->designationData->name:"N/A"}}
                                         </td>
-                                                                            
+
                                         <td class="align-middle text-sm text-center">
                                             <div class="form-check form-switch">
-                                                <input 
-                                                    class="form-check-input ms-auto" 
-                                                    type="checkbox" 
-                                                    id="flexSwitchCheckDefault{{ $employee->id }}" 
+                                                <input
+                                                    class="form-check-input ms-auto"
+                                                    type="checkbox"
+                                                    id="flexSwitchCheckDefault{{ $employee->id }}"
                                                     wire:click="toggleStatus({{ $employee->id }})"
                                                     @if($employee->status) checked @endif>
                                             </div>
