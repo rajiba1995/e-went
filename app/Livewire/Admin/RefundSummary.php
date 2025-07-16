@@ -205,25 +205,55 @@ class RefundSummary extends Component
         ->orderBy('id', 'DESC')
         ->where('status', 'processed')
         ->paginate(20);
-        $rejected_users = User::with('doc_logs')
-            ->when($this->search, function ($query) {
-                $searchTerm = '%' . $this->search . '%';
-                $query->where(function ($q) use ($searchTerm) {
-                    $q->where('name', 'like', $searchTerm)
-                      ->orWhere('mobile', 'like', $searchTerm)
-                      ->orWhere('email', 'like', $searchTerm)
-                      ->orWhere('customer_id', 'like', $searchTerm);
+
+        $in_confirmed_data = OrderItemReturn::with('order_item')
+        ->when($this->search, function ($query) {
+            $searchTerm = '%' . $this->search . '%';
+
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereHas('order_item.product', function ($productQuery) use ($searchTerm) {
+                    $productQuery->where('title', 'like', $searchTerm);
                 });
-            })
-            ->where('is_verified', 'rejected')
-            ->orderBy('id', 'DESC')
-            ->paginate(20);
-            //echo "<pre>";print_r($in_processed_data->toArray());exit;
+
+                $q->orWhereHas('user', function ($userQuery) use ($searchTerm) {
+                    $userQuery->where('name', 'like', $searchTerm)
+                        ->orWhere('mobile', 'like', $searchTerm)
+                        ->orWhere('email', 'like', $searchTerm)
+                        ->orWhere('customer_id', 'like', $searchTerm);
+                });
+            });
+        })
+        ->orderBy('id', 'DESC')
+        ->where('status', 'confimed')
+        ->paginate(20);
+
+        $in_rejected_data = OrderItemReturn::with('order_item')
+        ->when($this->search, function ($query) {
+            $searchTerm = '%' . $this->search . '%';
+
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereHas('order_item.product', function ($productQuery) use ($searchTerm) {
+                    $productQuery->where('title', 'like', $searchTerm);
+                });
+
+                $q->orWhereHas('user', function ($userQuery) use ($searchTerm) {
+                    $userQuery->where('name', 'like', $searchTerm)
+                        ->orWhere('mobile', 'like', $searchTerm)
+                        ->orWhere('email', 'like', $searchTerm)
+                        ->orWhere('customer_id', 'like', $searchTerm);
+                });
+            });
+        })
+        ->orderBy('id', 'DESC')
+        ->where('status', 'rejected')
+        ->paginate(20);
+
         return view('livewire.admin.refund-summary', [
             'eligible_refunds' => $eligible_refunds,
             'in_progress_data' => $in_progress_data,
-            'rejected_users' => $rejected_users,
             'in_processed_data' => $in_processed_data,
+            'in_confirmed_data' => $in_confirmed_data,
+            'in_rejected_data' => $in_rejected_data,
 
 
         ]);
@@ -284,7 +314,6 @@ class RefundSummary extends Component
             $admin = Auth::guard('admin')->user();
             $adminId = $admin->id;
             if (!empty($this->order_item_return_id)) {
-               
                 OrderItemReturn::where('id', $this->order_item_return_id)->update([
                     'damaged_part_image' => implode(",", $damaged_part_image),
                     'refund_amount' => $this->balance_amnt,
