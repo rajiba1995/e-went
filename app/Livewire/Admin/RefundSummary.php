@@ -83,8 +83,32 @@ class RefundSummary extends Component
         $this->calculateAmount();
         $this->dispatch('bind-chosen', []);
     }
+    public function ConfirmFullPayment($id){
+        $this->dispatch('showConfirmFullPayment',['itemId' => $id]);
+    }
     public function ConfirmZeroPayment($id){
         $this->dispatch('showConfirmZeroPayment',['itemId' => $id]);
+    }
+    public function ConfirmCancelRequest($id){
+        $this->dispatch('showConfirmCancelRequest',['itemId' => $id]);
+    }
+    public function FullPayment($order_id){
+        $Order = Order::find($order_id);
+        OrderItemReturn::create([
+            'order_item_id' => $order_id,
+            'refund_amount' => $Order->deposit_amount,
+            'actual_amount' => $Order->deposit_amount,
+            'refund_category' => 'deposit_full_refund',
+            'refund_initiated_by' => Auth::guard('admin')->user()->id,
+            'refund_initiated_at' => now()->toDateTimeString(),
+            'user_id' => $Order->user_id,
+            'return_status' => 'good_condition',
+            'status' => 'in_progress'
+        ]);
+
+        $this->active_tab = 2;
+        $this->resetPage();
+        session()->flash('message', 'request submitted successfully!');
     }
     public function ZeroPayment($order_id){
         $Order = Order::find($order_id);
@@ -101,7 +125,27 @@ class RefundSummary extends Component
         ]);
 
         $this->active_tab = 2;
+        $this->resetPage();
         session()->flash('message', 'request submitted successfully!');
+    }
+
+   public function CancelRequest($id)
+    {
+        $OrderItemReturn = OrderItemReturn::find($id);
+
+        if ($OrderItemReturn) {
+            // Delete related damage parts
+            $OrderItemReturn->damageParts()->delete();
+
+            // Delete the return record
+            $OrderItemReturn->delete();
+
+            $this->active_tab = 1;
+            $this->resetPage();
+            session()->flash('message', 'Request cancelled successfully!');
+        } else {
+            session()->flash('error', 'Request not found or already deleted.');
+        }
     }
     public function ProgressModal($id)
     {
@@ -122,6 +166,20 @@ class RefundSummary extends Component
     }
     public function updatePaymentData($order_return_id){
         $OrderItemReturn = OrderItemReturn::find($order_return_id);
+        if($OrderItemReturn->refund_category==="deposit_no_refund"){
+            $OrderItemReturn->return_date = now()->toDateTimeString();
+            $OrderItemReturn->status = 'confimed';
+            $OrderItemReturn->txnStatus = 'SUC';
+            $OrderItemReturn->save();
+
+            $this->dispatch('paymentUpdateSuccess', [
+                'message' => 'The refund payment has been marked as confirmed.'
+            ]);
+            $this->active_tab = 4;//Confimed Tab
+            $this->resetPage();
+            return;
+        }
+        
         if (!$OrderItemReturn) {
             $this->dispatch('paymentUpdateFailed', [
                 'message' => 'Refund record not found.'
@@ -227,6 +285,7 @@ class RefundSummary extends Component
                     'message' => 'The refund payment has been marked as confirmed.'
                 ]);
                 $this->active_tab = 4;//Confimed Tab
+                $this->resetPage();
             }else{
                   $this->dispatch('paymentUpdateFailed', [
                     'message' => $responseData['respDescription']
@@ -350,6 +409,7 @@ class RefundSummary extends Component
     public function tab_change($value){
         $this->active_tab = $value;
         $this->search = "";
+        $this->resetPage();
     }
     public function render()
     {
@@ -587,6 +647,7 @@ class RefundSummary extends Component
 
             $this->closeModal();
             $this->active_tab = 2;
+            $this->resetPage();
             session()->flash('message', 'Balance submitted successfully!');
         });
     }
@@ -602,6 +663,7 @@ class RefundSummary extends Component
         // Save the record
         $return->save();
         $this->active_tab = 3; //Processed Tab
+           $this->resetPage();
         $this->closeProgressModal();
     session()->flash('message', 'Status has been changed Successfully !');
 

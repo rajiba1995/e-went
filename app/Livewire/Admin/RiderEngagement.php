@@ -139,7 +139,7 @@ class RiderEngagement extends Component
             }
 
             $order = Order::find($this->targetOrderId);
-           
+
             if (!$order) {
                 session()->flash('assign_error', 'Sorry! Something went wrong. Please reload the page and try again.');
                 return false;
@@ -161,7 +161,7 @@ class RiderEngagement extends Component
                     'end_date' => $endDate,
                     'assigned_at' => $startDate,
                     'assigned_by' => Auth::guard('admin')->user()->id, // Corrected Auth syntax
-                ]); 
+                ]);
 
                 $order->rent_status = "active";
                 $order->rent_start_date = $startDate;
@@ -217,7 +217,7 @@ class RiderEngagement extends Component
                     'exchanged_by' => Auth::guard('admin')->user()->id, // Fixed typo (extra space)
                     'created_at'   => now(),
                     'updated_at'   => now(),
-                ]); 
+                ]);
 
                 $assignRider->vehicle_id = $this->vehicle_model;
                 $assignRider->assigned_by = Auth::guard('admin')->user()->id;
@@ -250,7 +250,7 @@ class RiderEngagement extends Component
 
     }
     public function OpenPreviewImage($front_image, $back_image,$document_type)
-    {   
+    {
         $this->preview_front_image = $front_image;
         $this->preview_back_image = $back_image;
         $this->document_type = $document_type;
@@ -315,7 +315,7 @@ class RiderEngagement extends Component
         $this->isRejectModal = false;
         $this->reset(['remarks', 'field','document_type', 'id']);
     }
-   
+
     public function closeAssignedModal()
     {
         $this->isAssignedModal = false;
@@ -466,7 +466,7 @@ class RiderEngagement extends Component
    public function gotoPage($value, $pageName = 'page')
     {
         $this->setPage($value, $pageName);
-        $this->page = $value; 
+        $this->page = $value;
     }
 
     public function render()
@@ -512,7 +512,7 @@ class RiderEngagement extends Component
             ->where('is_verified', 'verified')
             ->orderBy('id', 'DESC')
             ->paginate(20);
-            
+
         $active_users = User::where('is_verified', 'verified')
             ->whereHas('active_order')
             ->when($this->search, function ($query) use ($searchTerm) {
@@ -537,7 +537,6 @@ class RiderEngagement extends Component
             })
             ->orderBy('id', 'DESC')
             ->paginate(20);
-            
         $cancel_requested_users = User::where('is_verified', 'verified')
         ->whereHas('cancel_requested_order')
         ->when($this->search, function ($query) use ($searchTerm) {
@@ -564,7 +563,7 @@ class RiderEngagement extends Component
         ->paginate(20);
 
         // Fetch collections without pagination first
-        $all_users = User::when($this->search, function ($query) {
+        $all_users = User::whereHas('active_order')->when($this->search, function ($query) {
                 $searchTerm = '%' . $this->search . '%';
                 $query->where(function ($q) use ($searchTerm) {
                     $q->where('name', 'like', $searchTerm)

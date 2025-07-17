@@ -43,7 +43,7 @@
             background: rgba(0, 0, 0, 0.5);
             z-index: 1000;
         }
-        
+
         /* 17-03-2025 */
         .side-modal {
             height: 100vh;
@@ -76,7 +76,7 @@
             @endif
         </div>
     </div>
-    
+
     <div class="col-lg-12 col-md-6 mb-md-0 my-4">
         <div class="row">
             <div class="col-12">
@@ -84,15 +84,15 @@
                     <div class="row justify-content-end">
                         <div class="col-lg-6 col-6 my-auto mb-2">
                             <div class="d-flex align-items-center justify-content-end">
-                                <input type="text" wire:model="search" 
-                                       class="form-control border border-2 p-2 custom-input-sm" 
+                                <input type="text" wire:model="search"
+                                       class="form-control border border-2 p-2 custom-input-sm"
                                        placeholder="Search by Rider's Name, Email, or Mobile Number">
-                                <button type="button" wire:click="btn_search" 
+                                <button type="button" wire:click="btn_search"
                                         class="btn btn-primary text-white mb-0 custom-input-sm ms-2">
                                     <span class="material-icons">Search</span>
                                 </button>
                                 <!-- Refresh Button -->
-                                <button type="button" wire:click="reset_search" 
+                                <button type="button" wire:click="reset_search"
                                         class="btn btn-outline-danger waves-effect mb-0 custom-input-sm ms-2">
                                     <span class="material-icons">Refresh</span>
                                 </button>
@@ -189,7 +189,7 @@
                               <span class="d-none d-sm-block engagement_header">
                                 <i class="tf-icons ri-user-3-line me-1_5"></i>
                                 </i> Cancel Subscription Request <span
-                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-danger ms-1_5 pt-50">{{count($cancel_requested_users)}}</span>
+                                  class="badge rounded-pill badge-center h-px-20 w-px-20 bg-label-danger ms-1_5 pt-50">{{$cancel_requested_users->total()}}</span>
                                 </span>
                                 <i class="ri-user-3-line ri-20px d-sm-none"></i>
                             </button>
@@ -200,7 +200,7 @@
                     <div class="card-body">
                       <div class="tab-content p-0">
                         <div class="tab-pane fade {{$active_tab==1?"active show":""}}" id="navs-justified-home" role="tabpanel">
-                            
+
                             <div class="table-responsive p-0">
                                 <table class="table align-items-center mb-0">
                                     <thead>
@@ -215,7 +215,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($all_users as $k => $al_user)
                                         @php
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
@@ -245,7 +245,7 @@
                                                     </div>
                                                 </td>
                                                 <td class="align-middle text-start">
-                                                    
+
                                                     @if($al_user->ready_to_assign_order)
                                                         @if($al_user->latest_order)
                                                             @if($al_user->latest_order->payment_status=="completed")
@@ -271,11 +271,18 @@
                                                             <span class="badge bg-label-danger mb-0 cursor-pointer">NOT PAID</span>
                                                         @endif
                                                     @endif
-                                                        
+
                                                 </td>
                                                 <td class="align-middle text-start">
-                                                    @if($al_user->ready_to_assign_order)
+
+                                                    {{-- @if($al_user->ready_to_assign_order)
                                                         {{$al_user->latest_order?$al_user->latest_order->product->title:"N/A"}}
+                                                    @else
+                                                        N/A
+                                                    @endif --}}
+                                                     @if(optional($al_user->active_vehicle)->stock && optional($al_user->active_order)->product)
+                                                        {{ ucwords(optional($al_user->active_vehicle->stock)->vehicle_number) }} <br>
+                                                        {{ ucwords(optional($al_user->active_order->product)->title) }}
                                                     @else
                                                         N/A
                                                     @endif
@@ -307,13 +314,13 @@
                                         {{-- @php
 
                                             $inc_index = count($all_users);
-                                            
+
                                         @endphp
                                         @foreach($inactive_users as $all_inact_user)
                                             @php
                                                 $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
                                                 $colorClass = $colors[$inc_index % count($colors)]; // Rotate colors based on index
-                                              
+
                                             @endphp
                                             <tr>
                                                 <td class="align-middle text-center">{{ $inc_index + 1 }}</td>
@@ -396,14 +403,14 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($await_users as $k => $aw_user)
                                         @php
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
                                             $colorClass = $colors[$k % count($colors)]; // Rotate colors based on index
                                         @endphp
                                             <tr>
-                                                <td class="align-middle text-center">{{ $k + 1 }}</td>
+                                                <td class="align-middle text-center">{{ $k + $await_users->firstItem() }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center customer-name">
                                                         <div class="avatar-wrapper me-3">
@@ -478,7 +485,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($pending_orders as $k => $pend_order)
                                         @php
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
@@ -556,14 +563,14 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($ready_to_assigns as $k => $rta_user)
                                         @php
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
                                             $colorClass = $colors[$k % count($colors)]; // Rotate colors based on index
                                         @endphp
                                             <tr>
-                                                <td class="align-middle text-center">{{ $k + 1 }}</td>
+                                                <td class="align-middle text-center">{{ $k + $ready_to_assigns->firstItem() }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center customer-name">
                                                         <div class="avatar-wrapper me-3">
@@ -640,14 +647,14 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($active_users as $k => $ac_user)
                                         @php
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
                                             $colorClass = $colors[$k % count($colors)]; // Rotate colors based on index
                                         @endphp
                                             <tr>
-                                                <td class="align-middle text-center">{{ $k + 1 }}</td>
+                                                <td class="align-middle text-center">{{ $k + $active_users->firstItem() }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center customer-name">
                                                         <div class="avatar-wrapper me-3">
@@ -694,7 +701,7 @@
                                                     @else
                                                         ........
                                                     @endif
-                                                    
+
                                                 </td>
                                                 <td class="align-middle text-start">
                                                     @if($ac_user->active_order->rent_end_date)
@@ -719,6 +726,9 @@
                                                             <button class="btn btn-danger text-white mb-0 mx-1 action_btn_padding">
                                                                 Overdue
                                                             </button>
+                                                             <button class="btn btn-success text-white mb-0 mx-1 action_btn_padding" wire:click="confirmDeallocate({{$ac_user->active_order->id}})">
+                                                                    Deallocate
+                                                             </button>
                                                         @else
                                                             {{-- @if($ac_user->vehicle_assign_status=="deallocate")
                                                                 <button class="btn btn-primary text-white mb-0 mx-1 action_btn_padding" wire:click="updateUserData({{$ac_user->id}})">
@@ -734,7 +744,7 @@
                                                                 Exchange
                                                             </button>
                                                         @endif
-                                                        
+
                                                     </div>
                                                 </td>
                                             </tr>
@@ -760,14 +770,14 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($inactive_users as $k => $inact_user)
                                         @php
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
                                             $colorClass = $colors[$k % count($colors)]; // Rotate colors based on index
                                         @endphp
                                             <tr>
-                                                <td class="align-middle text-center">{{ $k + 1 }}</td>
+                                                <td class="align-middle text-center">{{ $k + $inactive_users->firstItem() }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center customer-name">
                                                         <div class="avatar-wrapper me-3">
@@ -839,14 +849,14 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($suspended_users as $k => $susp_user)
                                         @php
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
                                             $colorClass = $colors[$k % count($colors)]; // Rotate colors based on index
                                         @endphp
                                             <tr>
-                                                <td class="align-middle text-center">{{ $k + 1 }}</td>
+                                                <td class="align-middle text-center">{{ $k + $suspended_users->firstItem() }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center customer-name">
                                                         <div class="avatar-wrapper me-3">
@@ -924,14 +934,14 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                       
+
                                         @foreach($cancel_requested_users as $k => $cr_user)
                                         @php
                                             $colors = ['bg-label-primary', 'bg-label-success', 'bg-label-info', 'bg-label-secondary', 'bg-label-danger', 'bg-label-warning'];
                                             $colorClass = $colors[$k % count($colors)]; // Rotate colors based on index
                                         @endphp
                                             <tr>
-                                                <td class="align-middle text-center">{{ $k + 1 }}</td>
+                                                <td class="align-middle text-center">{{ $k + $cancel_requested_users->firstItem() }}</td>
                                                 <td class="sorting_1">
                                                     <div class="d-flex justify-content-start align-items-center customer-name">
                                                         <div class="avatar-wrapper me-3">
@@ -967,7 +977,7 @@
                                                     @else
                                                         ........
                                                     @endif
-                                                    
+
                                                 </td>
                                                 <td class="align-middle text-start">
                                                     @if($cr_user->active_order->rent_end_date)
@@ -985,6 +995,9 @@
                                                             <button class="btn btn-danger text-white mb-0 mx-1 action_btn_padding">
                                                                 Overdue
                                                             </button>
+                                                             <button class="btn btn-success text-white mb-0 mx-1 action_btn_padding" wire:click="confirmDeallocate({{$cr_user->active_order->id}})">
+                                                                    Deallocate
+                                                              </button>
                                                         @else
                                                             {{-- @if($ac_user->vehicle_assign_status=="deallocate")
                                                                 <button class="btn btn-primary text-white mb-0 mx-1 action_btn_padding" wire:click="updateUserData({{$ac_user->id}})">
@@ -997,7 +1010,7 @@
                                                                 </button>
                                                             @endif
                                                         @endif
-                                                        
+
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1015,7 +1028,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="loader-container" wire:loading>
         <div class="loader"></div>
     </div>
@@ -1061,11 +1074,11 @@
                 @endif
                 <div class="nav-align-top">
                     <ul class="nav nav-tabs nav-fill" role="tablist">
-                      <li class="nav-item" role="presentation"> 
+                      <li class="nav-item" role="presentation">
                         <button type="button" class="nav-link waves-effect modal-nav active" role="tab" data-bs-toggle="tab"
                           data-bs-target="#navs-justified-overview" aria-controls="navs-justified-overview" aria-selected="false"
                           tabindex="-1">
-                          <span class="d-none d-sm-block">Overview 
+                          <span class="d-none d-sm-block">Overview
                             </span>
                       </li>
                       <li class="nav-item" role="presentation">
@@ -1073,7 +1086,7 @@
                           data-bs-target="#navs-justified-history" aria-controls="navs-justified-history" aria-selected="false"
                           tabindex="-1">
                           <span class="d-none d-sm-block">
-                            History 
+                            History
                             </span>
                         </button>
                       </li>
@@ -1087,7 +1100,7 @@
                             <div class="d-flex align-items-center mb-3">
                                 <!-- Icon -->
                                 <div class="avatar me-3" style=" width:1.5rem; height: 1.5rem;">
-                                  <div class="avatar-initial rounded 
+                                  <div class="avatar-initial rounded
                                         bg-label-dark document_type">
                                     <i class="ri-roadster-line ri-15px"></i>
                                   </div>
@@ -1156,7 +1169,7 @@
                                 <div class="d-flex align-items-center mb-3">
                                     <!-- Icon -->
                                     <div class="avatar me-3" style=" width:1.5rem; height: 1.5rem;">
-                                    <div class="avatar-initial rounded 
+                                    <div class="avatar-initial rounded
                                             bg-label-dark document_type">
                                         <i class="ri-passport-line ri-15px"></i>
                                     </div>
@@ -1227,7 +1240,7 @@
                                 <div class="d-flex align-items-center mb-3">
                                     <!-- Icon -->
                                     <div class="avatar me-3" style=" width:1.5rem; height: 1.5rem;">
-                                    <div class="avatar-initial rounded 
+                                    <div class="avatar-initial rounded
                                             bg-label-dark document_type">
                                         <i class="ri-passport-line ri-15px"></i>
                                     </div>
@@ -1296,7 +1309,7 @@
                                 <!-- Icon -->
                                  <!-- Icon -->
                                 <div class="avatar me-3" style=" width:1.5rem; height: 1.5rem;">
-                                    <div class="avatar-initial rounded 
+                                    <div class="avatar-initial rounded
                                             bg-label-dark document_type">
                                     <i class="ri-bank-line ri-15px"></i>
                                     </div>
@@ -1368,7 +1381,7 @@
                             @if($selectedCustomer->passbook_status>0)
                                 <div class="d-flex align-items-center mb-3">
                                 <div class="avatar me-3" style=" width:1.5rem; height: 1.5rem;">
-                                        <div class="avatar-initial rounded 
+                                        <div class="avatar-initial rounded
                                                 bg-label-dark document_type">
                                         <i class="ri-home-line ri-15px"></i>
                                         </div>
@@ -1429,7 +1442,7 @@
                                 <div class="d-flex align-items-center mb-3">
                                 <!-- Icon -->
                                 <div class="avatar me-3" style=" width:1.5rem; height: 1.5rem;">
-                                    <div class="avatar-initial rounded 
+                                    <div class="avatar-initial rounded
                                             bg-label-dark document_type">
                                      <i class="ri-user-line ri-16px text-dark"></i>
                                     </div>

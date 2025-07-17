@@ -219,7 +219,8 @@
         </ul>
       </li>
     @endif
-    <li class="menu-item {{ (request()->is('admin/offer*')) ? 'open' : '' }}" style="">
+     @if (hasPermissionByParent('offer_management'))
+      <li class="menu-item {{ (request()->is('admin/offer*')) ? 'open' : '' }}" style="">
       <a href="#" class="menu-link menu-toggle waves-effect" target="_blank">
         <i class="menu-icon tf-icons ri-store-line"></i>
         <div>Offer Management</div>
@@ -232,7 +233,9 @@
         </li>
       </ul>
     </li>
-    <li class="menu-item {{ (request()->is('admin/bom-parts*')) ? 'open' : '' }}" style="">
+     @endif
+ @if (hasPermissionByParent('bom_part'))
+   <li class="menu-item {{ (request()->is('admin/bom-parts*')) ? 'open' : '' }}" style="">
       <a href="#" class="menu-link menu-toggle waves-effect" target="_blank">
         <i class="menu-icon tf-icons ri-store-line"></i>
         <div>BOM Parts</div>
@@ -245,7 +248,9 @@
         </li>
       </ul>
     </li>
-    <li class="menu-item {{ (request()->is('admin/selling-query*')) ? 'open' : '' }}" style="">
+  @endif
+  @if (hasPermissionByParent('selling_query'))
+   <li class="menu-item {{ (request()->is('admin/selling-query*')) ? 'open' : '' }}" style="">
       <a href="#" class="menu-link menu-toggle waves-effect" target="_blank">
         <i class="menu-icon tf-icons ri-store-line"></i>
         <div>Selling Query</div>
@@ -258,6 +263,8 @@
         </li>
       </ul>
     </li>
+  @endif
+
 
     <div class="ps__rail-x" style="left: 0px; bottom: 0px;">
       <div class="ps__thumb-x" tabindex="0" style="left: 0px; width: 0px;"></div>

@@ -15,7 +15,7 @@ class Dashboard extends Component
         Auth::guard('admin')->logout();
         session()->invalidate();
         session()->regenerateToken();
-        
+
         return redirect()->route('login');
     }
     public function mount(){
@@ -49,16 +49,26 @@ class Dashboard extends Component
         $assigned_vehicles = Stock::with('assignedVehicle')
         ->whereHas('assignedVehicle')->get();
 
+        // $unassigned_vehicles = Stock::whereDoesntHave('assignedVehicle', function ($query) {
+        //     $query->whereIn('status1', ['assigned','sold']); // Ensure it's truly unassigned
+        // })->get();
+
         $unassigned_vehicles = Stock::whereDoesntHave('assignedVehicle', function ($query) {
             $query->whereIn('status', ['assigned','sold']); // Ensure it's truly unassigned
-        })->get();
+        })->whereDoesntHave('overdueVehicle', function ($query) {
+            $query->whereIn('status', ['overdue']); // Ensure it's truly unassigned
+        })
 
-        $overdue_vehicles = [];
+        ->orderBy('id', 'DESC')->get()->count();
+       $overdue_vehicles = Stock::with('overdueVehicle')
+        ->whereHas('overdueVehicle') // Ensures only assigned vehicles are fetched
+
+        ->orderBy('id', 'DESC')->get()->count();
 
         $total = count($all_vehicles);
         $assigned = count($assigned_vehicles);
-        $unassigned = count($unassigned_vehicles);
-        $overdue = count($overdue_vehicles);
+        $unassigned = $unassigned_vehicles;
+        $overdue = ($overdue_vehicles);
 
         $assigned_percent = $total > 0 ? round(($assigned / $total) * 100) : 0;
         $unassigned_percent = $total > 0 ? round(($unassigned / $total) * 100) : 0;
