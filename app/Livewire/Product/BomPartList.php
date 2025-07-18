@@ -213,21 +213,18 @@ $fieldMap = [
                 $mappedData[$fieldName] = $data[$letter] ?? null;
             }
 
-    // Validate
-    Validator::make($mappedData, [
-        'title' => 'required|exists:products,title',
-        'part_name' => 'required',
-        'part_unit' => 'required',
-        'part_price' => 'required',
-        'warranty_available' => 'nullable|in:Yes,No', // ✅ optional, but if present must be yes/no
-
-
-    ])->validate();
-            // User::create([
-            //     'name' => $data['name'],
-            //     'email' => $data['email'],
-            //     'phone' => $data['phone'] ?? null,
-            // ]);
+          try {
+          Validator::make($mappedData, [
+              'title' => 'required|exists:products,title',
+              'part_name' => 'required',
+              'part_unit' => 'required',
+              'part_price' => 'required',
+              'warranty_available' => 'nullable|in:Yes,No',
+          ])->validate();
+      } catch (\Illuminate\Validation\ValidationException $e) {
+          session()->flash('error', $e->validator->errors()->first());
+          return;
+      }
         }
           $product=Product::where('title',$mappedData['title'])->first();
           BomPart::create([
@@ -242,7 +239,7 @@ $fieldMap = [
             ]);
 
         fclose($file);
-    $this->dispatch('$refresh');
+        $this->resetSearch();
 
         session()->flash('message', 'CSV imported successfully!');
         $this->reset('csv_file');

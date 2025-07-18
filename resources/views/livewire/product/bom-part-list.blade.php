@@ -24,11 +24,7 @@
         {{ session('message') }}
       </div>
       @endif
-      @if(session()->has('error'))
-      <div class="alert alert-danger" id="flashMessage">
-        {{ session('error') }}
-      </div>
-      @endif
+
     </div>
   </div>
 
@@ -442,7 +438,7 @@ document.addEventListener('DOMContentLoaded', function () {
             csvInput.addEventListener('change', function () {
                 setTimeout(() => {
                     Livewire.dispatch('autoImportCSV');
-                }, 2000);
+                }, 3000);
             });
         } else {
             console.warn('#csv_file not found');
