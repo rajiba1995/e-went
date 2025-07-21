@@ -26,7 +26,7 @@ Route::post('/admin/logout', [AuthController::class, 'logout'])->name('admin.log
 // Default Root Route
 Route::get('/', function () { return redirect()->route('login');});
 // Admin Routes - Authenticated and Authorized
-Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth:admin','admin.maintenance'])->prefix('admin')->group(function () {
     // Dashboard and Customer Routes
     Route::get('dashboard', Dashboard::class)->name('admin.dashboard');
     Route::group(['prefix' => 'rider'], function () {

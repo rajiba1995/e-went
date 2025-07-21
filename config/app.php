@@ -125,6 +125,8 @@ return [
     'store' => env('APP_MAINTENANCE_STORE', 'database'),
   ],
 
+  'admin_maintenance' => env('ADMIN_MAINTENANCE', false),
+
   'providers' => [
       // Other providers...
         App\Providers\RouteServiceProvider::class,

@@ -9,6 +9,7 @@ use App\Models\WhyEwent;
 use App\Models\UserKycLog;
 use App\Models\Faq;
 use App\Models\Product;
+use App\Models\Stock;
 use App\Models\SellingQuery;
 use App\Models\Payment;
 use App\Models\PaymentItem;
@@ -2007,7 +2008,6 @@ class AuthController extends Controller
         DB::beginTransaction();
         try{
             if($status==true){
-
                 $existing_payment = Payment::where('icici_merchantTxnNo',$merchantTxnNo)->first();
                 if(!$existing_payment){
                     return response()->json([
@@ -2065,8 +2065,17 @@ class AuthController extends Controller
                         $order->subscription_type = 'renewal_subscription_' . $order_type;
                         $order->save();
         
-                        
-        
+                        $asigned_vehicle = Stock::where('id',$assignRider->vehicle_id)->first();
+                        if($asigned_vehicle){
+                            if($asigned_vehicle->immobilizer_status=="IMMOBILIZE"){
+                                $this->MobilizationRequest($assignRider->vehicle_id);
+                            }else{
+                                $stock->immobilizer_status = "MOBILIZE";
+                                $stock->immobilizer_request_id = null;
+                                $stock->save();
+                            }
+                        }
+
                         DB::table('exchange_vehicles')->insert([
                             'status'       => "renewal",
                             'user_id'      => $assignRider->user_id,
@@ -2103,6 +2112,39 @@ class AuthController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+     protected function MobilizationRequest($value){
+        $stock = Stock::find($value);
+        $vehiclesUrl = 'https://app.loconav.sensorise.net/integration/api/v1/vehicles/'.$stock->vehicle_track_id.'/immobilizer_requests';
+        $payload = [
+            "value" => 'MOBILIZE',
+        ];
+        // dd($payload);
+        $ch = curl_init($vehiclesUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true); // Set as POST request
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "User-Authentication: " . env('LOCONAV_TOKEN'),
+            "Accept: application/json",
+            "Content-Type: application/json"
+        ]);
+        
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload)); // Pass JSON body
+
+        $vehiclesResponse = curl_exec($ch);
+        curl_close($ch);
+        $response = json_decode($vehiclesResponse, true);
+        if($response['success']==true){
+            if(isset($response['data']['id'])){
+                $stock->immobilizer_status = "MOBILIZE";
+                $stock->immobilizer_request_id = null;
+                $stock->save();
+            }
+        }
+            Log::error('mobilization_request', [
+                'response' => $response
+            ]);
     }
     public function bookingRenewPayment(Request $request){
        
@@ -2174,7 +2216,7 @@ class AuthController extends Controller
                             $payment->amount = $order->subscription ? $order->subscription->rental_amount : $order->rental_amount;
                             $payment->payment_date = now()->toDateTimeString();
                             $payment->save();
-                
+
                             if($payment){
                                 // Rental Amount
                                 $payment_item = new PaymentItem;
@@ -2946,8 +2988,8 @@ class AuthController extends Controller
             "customerEmailID"=> optional($order->user)->email??"testmail123@gmail.com",
             "transactionType"=> "SALE",
             "txnDate"=> date('YmdHis'),
-            "returnURL"=> 'http://127.0.0.1:8000/api/customer/icici/thankyou',
-            // "returnURL"=> secure_url('api/customer/icici/thankyou'),
+            // "returnURL"=> 'http://127.0.0.1:8000/api/customer/icici/thankyou',
+            "returnURL"=> secure_url('api/customer/icici/thankyou'),
             "customerMobileNo"=> "91".optional($order->user)->mobile??"9876543210",
         ];
         // Create secureHash
@@ -3087,13 +3129,13 @@ class AuthController extends Controller
     public function ICICIThankyou(Request $request)
     {
         $response = $request->all(); // Get all data
-          PaymentLog::create([
+        PaymentLog::create([
             'gateway' => 'ICICI',
             'transaction_id' => $response['txnID'] ?? null,
             'merchant_txn_no' => $response['merchantTxnNo'] ?? null,
             'response_payload' => json_encode($response),
             'status' => $response['responseCode'] ?? null,
-            'message' => $response['respDescription'] ?? null,
+            'message' => isset($response['respDescription']) ? $response['respDescription'] . '(authorized)' : null,
         ]);
         $merchantTxnNo = $response['merchantTxnNo'] ?? null;
 
@@ -3117,15 +3159,35 @@ class AuthController extends Controller
             isset($response['respDescription']) &&
             $response['respDescription'] === 'Transaction successful'
         ) {
+            PaymentLog::create([
+                'gateway' => 'ICICI',
+                'transaction_id' => $response['txnID'] ?? null,
+                'merchant_txn_no' => $response['merchantTxnNo'] ?? null,
+                'response_payload' => json_encode($response),
+                'status' => $response['responseCode'] ?? null,
+                'message' => isset($response['respDescription']) ? $response['respDescription'] . '(completed)' : null,
+            ]);
             if($OrderMerchantNumber->type==='new'){
+                 Log::error('bookingNewICICIPayment data', [
+                    'merchantTxnNo'     => $merchantTxnNo,
+                    'txnID'             => $response['txnID'] ?? null,
+                    'paymentMode'       => $response['paymentMode'] ?? null,
+                    'paymentDateTime'   => $response['paymentDateTime'] ?? null,
+                ]);
                 $bookingResponse = $this->bookingNewICICIPayment(
                     $merchantTxnNo,
                     $response['txnID'],
                     $response['paymentMode'],
                     $response['paymentDateTime']
                 );
-                
             }else{
+
+                Log::error('bookingRenewICICIPayment data', [
+                    'merchantTxnNo'     => $merchantTxnNo,
+                    'txnID'             => $response['txnID'] ?? null,
+                    'paymentMode'       => $response['paymentMode'] ?? null,
+                    'paymentDateTime'   => $response['paymentDateTime'] ?? null,
+                ]);
                 $bookingResponse = $this->bookingRenewICICIPayment(
                     $merchantTxnNo,
                     $response['txnID'],

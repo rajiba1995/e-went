@@ -235,7 +235,7 @@ class RefundSummary extends Component
         // Retrieve these from DB if needed
         $originalTxnNo = $fetchPaymentData->icici_txnID; // Ideally, fetch actual amount from your DB using this txn no
         // Optional: Only include if the transaction was aggregator-initiated
-        $aggregatorID = env('ICICI_AGGREGATOR_ID');
+        // $aggregatorID = env('ICICI_AGGREGATOR_ID');
         $aggregatorSecretKey = env('ICICI_MARCHANT_SECRET_KEY');
 
         // Create secureHash (optional but usually required)
@@ -249,8 +249,6 @@ class RefundSummary extends Component
             'transactionType'  => $transactionType,
             'amount'           => $amount,
             'secureHash'       => $secureHash,
-            // Only include aggregatorID if needed
-            // 'aggregatorID'     => $aggregatorID,
         ];
         // Make cURL request
         $ch = curl_init(env('ICICI_PAYMENT_CHECK_STATUS_BASH_URL'));
@@ -266,6 +264,7 @@ class RefundSummary extends Component
         curl_close($ch);
         if ($httpCode == 200) {
             $responseData = json_decode($response, true); // Convert JSON string to associative array
+            // dd($responseData);
             if($responseData['responseCode']=='P1000'){
                 PaymentLog::create([
                     'gateway' => 'ICICI',

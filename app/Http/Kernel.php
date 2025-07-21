@@ -65,6 +65,7 @@ class Kernel extends HttpKernel
         'auth.user' => \App\Http\Middleware\EnsureUserIsAuthenticated::class, 
         'token.session' => \App\Http\Middleware\TokenSession::class,
         'auth.sanctum.custom' => \App\Http\Middleware\SanctumAuthMiddleware::class,
+        'admin.maintenance' => \App\Http\Middleware\AdminUnderMaintenance::class,
     ];
     
     protected $middlewareAliases = [
