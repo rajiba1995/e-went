@@ -98,8 +98,8 @@ class AuthController extends Controller
                 // if (strpos($signingUrl, "https://esign.zoop.one") !== false) {
                 //     $signingUrl = str_replace("https://esign.zoop.one", "https://esign.zoop.plus", $signingUrl);
                 // }
-                
-                
+
+
                 if(isset($responseData['response_code']) && $responseData['response_code'] == 403){
                      return response()->json([
                         'status' => false,
@@ -126,14 +126,14 @@ class AuthController extends Controller
                             'message' => 'Terms and conditions not verified.',
                         ], 403);
                     }
-                    
+
                 }
-                
+
             // }
         }
         if($request->step==2){
             // $UserTermsConditions = UserTermsConditions::where('email',$request->email)->first();
-            // $UserTermsConditions->status = 
+            // $UserTermsConditions->status =
             // UserTermsConditions::updateOrCreate(
             //     ['mobile' => $request->mobile], // Search by mobile
             //     [
@@ -143,7 +143,7 @@ class AuthController extends Controller
             //     ]
             // );
         }
-       
+
         DB::beginTransaction();
 
         try {
@@ -157,15 +157,15 @@ class AuthController extends Controller
             // if ($request->hasFile('driving_licence_front')) {
             //     $drivinglicencePath = storeFileWithCustomName($request->file('driving_licence_front'), 'uploads/driving_licences');
             // }
-            
+
             // if ($request->hasFile('aadhar_card_front')) {
             //     $govtIdCardPath = storeFileWithCustomName($request->file('aadhar_card_front'), 'uploads/aadhar_card');
             // }
-            
+
             // if ($request->hasFile('pan_card_front')) {
             //     $cancelledChequePath = storeFileWithCustomName($request->file('pan_card_front'), 'uploads/cancelled_cheques');
             // }
-            
+
             // if ($request->hasFile('current_address_proof_front')) {
             //     $currentAddressProofPath = storeFileWithCustomName($request->file('current_address_proof_front'), 'uploads/address_proofs');
             // }
@@ -211,13 +211,13 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-     
+
         // Validate the login request
         $validator = Validator::make($request->all(), [
             'username' => 'required|string',
             'password' => 'required|string|min:6',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
@@ -225,17 +225,17 @@ class AuthController extends Controller
                 'errors' => $validator->errors()->first(),
             ], 422);
         }
-     
+
         // Determine if username is an email or mobile number
         $loginField = filter_var($request->username, FILTER_VALIDATE_EMAIL) ? 'email' : 'mobile';
-     
+
         // Additional check for mobile format
         if ($loginField === 'mobile' && !preg_match('/^\d{10}$/', $request->username)) {
             return response()->json([
                 'message' => 'Invalid mobile number. It must be a 10-digit number.',
             ], 422);
         }
-       
+
         // Attempt login
         if (Auth::attempt([$loginField => $request->username, 'password' => $request->password])) {
             $user = Auth::guard('sanctum')->user();
@@ -305,7 +305,7 @@ class AuthController extends Controller
              'mobile' => 'required|digits:10|exists:users,mobile',
              'otp' => 'required|digits:4',
          ]);
- 
+
          if ($validator->fails()) {
              return response()->json([
                 'status' => false,
@@ -313,22 +313,22 @@ class AuthController extends Controller
                  'errors' => $validator->errors()->first(),
              ], 422);
          }
- 
+
          $mobile = $request->mobile;
          $otp = $request->otp;
- 
+
          // Check OTP in the database
          $record = DB::table('password_reset_tokens')
              ->where('mobile', $mobile)
              ->where('otp', $otp)
              ->first();
-             
+
          if (!$record || now()->diffInSeconds($record->created_at) > 60) {
              return response()->json([
                  'message' => 'Invalid or expired OTP.',
              ], 422);
          }
- 
+
          // Mark OTP as verified (optional, cleanup can be added)
          return response()->json([
              'message' => 'OTP verified successfully.',
@@ -385,7 +385,7 @@ class AuthController extends Controller
         if ($user instanceof \Illuminate\Http\JsonResponse) {
             return $user; // Return the response if the user is not authenticated
         }
-        
+
         // Check if the user exists
         if (!$user) {
             return response()->json([
@@ -393,7 +393,7 @@ class AuthController extends Controller
                 'message' => 'User not found.',
             ], 404); // 404 Not Found
         }
-    
+
         // Return the user profile data
         return response()->json([
             'data' => $user,
@@ -418,7 +418,7 @@ class AuthController extends Controller
         }
         // Find the user by ID
         $user = User::find($request->user);
-    
+
         // If the user is not found, return a response
         if (!$user) {
             return response()->json([
@@ -426,7 +426,7 @@ class AuthController extends Controller
                 'message' => 'User not found.',
             ], 404); // 404 Not Found
         }
-    
+
         // Verify the current password
         if (!Hash::check($request->current_password, $user->password)) {
             return response()->json([
@@ -434,12 +434,12 @@ class AuthController extends Controller
                 'message' => 'Current password is incorrect.',
             ], 400); // 400 Bad Request
         }
-    
+
         // Update the password
         $user->update([
             'password' => Hash::make($request->new_password),
         ]);
-    
+
         return response()->json([
             'status' => true,
             'message' => 'Password changed successfully.',
@@ -471,20 +471,20 @@ class AuthController extends Controller
     public function fetchFaqs()
     {
         $faqs = Faq::orderBy('id', 'ASC')->get();
-    
+
         if ($faqs->isEmpty()) {
             return response()->json([
                 'status' => false,
                 'message' => 'No faqs available.',
                 'data' => [],
-            ], 404); 
+            ], 404);
         }
 
         return response()->json([
             'status' => true,
             'message' => 'Faqs fetched successfully.',
             'data' => $faqs,
-        ], 200); 
+        ], 200);
     }
 
     // profile update
@@ -534,7 +534,7 @@ class AuthController extends Controller
             'status' => true,
             'message' => 'Profile updated successfully!',
             'data' => $user,
-        ], 200); 
+        ], 200);
     }
     public function updateDocument(Request $request){
         $user = $this->getAuthenticatedUser();
@@ -565,7 +565,7 @@ class AuthController extends Controller
         }
 
         $user = User::where('id', $user->id)->first();
-        
+
        // Handle image upload (if provided)
         if ($request->hasFile('driving_licence_front') || $request->hasFile('driving_licence_back')) {
 
@@ -573,14 +573,14 @@ class AuthController extends Controller
                 $driving_licence_front = storeFileWithCustomName($request->file('driving_licence_front'), 'uploads/driving_licences');
                 $user->driving_licence_front = $driving_licence_front;
             }
-            
+
             if($request->hasFile('driving_licence_back')){
                 $driving_licence_back = storeFileWithCustomName($request->file('driving_licence_back'), 'uploads/driving_licences');
                 $user->driving_licence_back = $driving_licence_back;
             }
 
             $user->driving_licence_status = 1;
-          
+
             $existing_data = UserKycLog::where('user_id', $user->id)->where('document_type','Driving Licence')->where('status', 'Uploaded')->first();
             $store = new UserKycLog;
             if($existing_data){
@@ -592,7 +592,7 @@ class AuthController extends Controller
             $store->created_at = now()->toDateTimeString();
             $store->document_type = 'Driving Licence';
             $store->save();
-            
+
         }
         if ($request->aadhar_number) {
             // if($request->hasFile('aadhar_card_front')){
@@ -631,7 +631,7 @@ class AuthController extends Controller
                 $pan_card_back = storeFileWithCustomName($request->file('pan_card_back'), 'uploads/pan_card');
                 $user->pan_card_back = $pan_card_back;
             }
-            
+
             $user->pan_card_status = 1;
 
             $existing_data = UserKycLog::where('user_id', $user->id)->where('document_type','Pan Card')->where('status', 'Uploaded')->first();
@@ -657,7 +657,7 @@ class AuthController extends Controller
                 $current_address_proof_back = storeFileWithCustomName($request->file('current_address_proof_back'), 'uploads/address_proofs');
                 $user->current_address_proof_back = $current_address_proof_back;
             }
-            
+
 
             $user->current_address_proof_status = 1;
 
@@ -672,7 +672,7 @@ class AuthController extends Controller
             $store->created_at = now()->toDateTimeString();
             $store->document_type = 'Current Address Proof';
             $store->save();
-           
+
         }
 
         if ($request->hasFile('passbook_front')) {
@@ -724,9 +724,9 @@ class AuthController extends Controller
             'status' => true,
             'message' => 'Profile document updated successfully!',
             'data' => $user,
-        ], 200); 
+        ], 200);
     }
-    
+
     public function revokeTokens()
     {
         try {
@@ -845,7 +845,7 @@ class AuthController extends Controller
             'product_id' => 'required|exists:products,id',
             'remarks' => 'required|string|max:1000',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'status' => false,
@@ -879,7 +879,7 @@ class AuthController extends Controller
         }
 
     }
-    
+
     public function SellingProductDetails($id)
     {
         $user = $this->getAuthenticatedUser();
@@ -898,7 +898,7 @@ class AuthController extends Controller
             ])
             ->first();
 
- 
+
         // Check if product exists
         if (!$data) {
             return response()->json(['status' => false, 'message' => 'Product not found'], 404);
@@ -914,7 +914,7 @@ class AuthController extends Controller
         $allfeatures = collect($data->features)
             ->pluck('title') // Get all images from the relationship
             ->unique() // Ensure no duplicate images
-            ->toArray(); 
+            ->toArray();
         $product_features = [];
         if(count($allfeatures)>0){
             foreach($allfeatures as $k=>$fitem){
@@ -943,7 +943,7 @@ class AuthController extends Controller
         ->orderBy('title', 'ASC') // Then order by title
         ->limit(10) // Limit to 10 results
         ->get();
-            
+
         // Prepare product details object
         $product_data = (object) [];
         $product_data->id = $data->id;
@@ -988,7 +988,7 @@ class AuthController extends Controller
             ])
             ->first();
 
- 
+
         // Check if product exists
         if (!$data) {
             return response()->json(['status' => false, 'message' => 'Product not found'], 404);
@@ -1004,7 +1004,7 @@ class AuthController extends Controller
         $allfeatures = collect($data->features)
             ->pluck('title') // Get all images from the relationship
             ->unique() // Ensure no duplicate images
-            ->toArray(); 
+            ->toArray();
         $product_features = [];
         if(count($allfeatures)>0){
             foreach($allfeatures as $k=>$fitem){
@@ -1032,7 +1032,7 @@ class AuthController extends Controller
         ->orderBy('title', 'ASC') // Then order by title
         ->limit(10) // Limit to 10 results
         ->get();
-            
+
         // Prepare product details object
         $product_data = (object) [];
         // $product_data->stock_qty = $data->stock_qty;
@@ -1076,7 +1076,7 @@ class AuthController extends Controller
                 'message' => 'No search value provided.',
             ], 200);
         }
-    
+
         // Proceed with filtering if search term exists
         $products = Product::query()
             ->select(
@@ -1097,23 +1097,23 @@ class AuthController extends Controller
             ->orderBy('position', 'ASC')
             ->orderBy('title', 'ASC')
             ->get();
-    
+
         return response()->json([
             'status' => true,
             'data' => $products,
             'message' => count($products) > 0 ? 'Getting product list.' : 'Data not found!',
         ], 200);
     }
-    
+
     public function HomePage()
     {
         // Fetching the banners
         $banners = Banner::where('status', 1)->orderBy('id', 'desc')->get();
         $why_ewent = WhyEwent::where('status', 1)->orderBy('id', 'desc')->get();
-        
+
         // Fetching the FAQs
         $faqs = Faq::orderBy('id', 'ASC')->get();
-        
+
         // Fetching the products with eager loading
         $products = Product::select('id', 'title', 'position', 'types', 'short_desc', 'image', 'status', 'is_driving_licence_required')->where('status', 1)
             ->with([
@@ -1140,7 +1140,7 @@ class AuthController extends Controller
                 'message' => 'No data found',
             ], 404);
         }
-    
+
         // Prepare a single array for the API response
         $response = [
             'why_ewent' => $why_ewent,
@@ -1148,7 +1148,7 @@ class AuthController extends Controller
             'faqs' => $faqs,
             'products' => $products
         ];
-    
+
         // Return the data if found
         return response()->json([
             'status' => true,
@@ -1163,7 +1163,7 @@ class AuthController extends Controller
             return $user; // Return the response if the user is not authenticated
         }
         $documents= [];
-       
+
         $data = User::select('id', 'driving_licence_front', 'driving_licence_back','driving_licence_status', 'aadhar_card_front', 'aadhar_card_back','aadhar_number','aadhar_card_status', 'pan_card_front', 'pan_card_back','pan_card_status', 'current_address_proof_front','current_address_proof_back', 'current_address_proof_status','passbook_front', 'passbook_status','profile_image','profile_image_status')->where('id',$user->id)->first();
          // Check if product exists
         if (!$data) {
@@ -1227,7 +1227,7 @@ class AuthController extends Controller
             $item->status = 'Address Proof '.$item->status;
             return $item;
         })->toArray();
-        
+
         $documents['Passbook']['history'] = UserKycLog::where('user_id', $user->id)->where('document_type', 'Passbook')->orderBy('id', 'ASC')->get()->map(function ($item) {
             $item->date = \Carbon\Carbon::parse($item->created_at)->format('d-m-Y h:i A'); // Format Date
             $item->status = 'Passbook '.$item->status;
@@ -1269,7 +1269,7 @@ class AuthController extends Controller
         $result = [];
         foreach($data as $key => $item){
             $histories = $item->exchange_vehicle()->orderBy('id', 'ASC')->get();
-        
+
             $result[$key] = [
                 'order_number' => $item->order_number,
                 'model' => $item->product ? $item->product->title : "N/A",
@@ -1318,7 +1318,7 @@ class AuthController extends Controller
         $result = [];
 
         foreach($data as $key => $item) {
-           
+
             foreach($item->payments as $index=>$sub_item){
                 $result[$index] = [
                     'order_number' => $item->order_number,
@@ -1336,7 +1336,7 @@ class AuthController extends Controller
             'status' => true,
             'order' => $result,
         ], 200);
-      
+
     }
     public function SellOrderHistory($user_id){
         $data = Order::where('user_id', $user_id)->where('order_type', 'Sell')->orderBy('id', 'DESC')->get();
@@ -1394,9 +1394,9 @@ class AuthController extends Controller
             'rental_amount' => 'required|numeric',
             'total_amount' => 'required|numeric',
         ]);
-        
-       
-        
+
+
+
         // Check if validation fails
         if ($validator->fails()) {
             return response()->json([
@@ -1408,7 +1408,7 @@ class AuthController extends Controller
         // Check User Verification
         if ($user->is_verified!=="verified") {
             return response()->json([
-                'status' => false, 
+                'status' => false,
                 'message' => "Your KYC status is currently $user->is_verified Please verify your KYC to continue."
             ], 404);
         }
@@ -1418,11 +1418,11 @@ class AuthController extends Controller
                 'status' => false,
                 'message' => 'Sorry! Your account is suspended. Please contact the administrator for assistance.',
             ], 404);
-        } 
+        }
         // Check Driving Licence Verification
         if ($request->is_driving_licence_required==1 && $user->driving_licence_status!=2) {
             return response()->json([
-                'status' => false, 
+                'status' => false,
                 'message' => "Your driving licence verification is pending. Please complete the verification to continue."
             ], 404);
         }
@@ -1431,7 +1431,7 @@ class AuthController extends Controller
         $assigned_vehicle = AsignedVehicle::where('user_id', $user->id)->where('status', 'assigned')->get()->count();
         if($assigned_vehicle>0){
             return response()->json([
-                'status' => false, 
+                'status' => false,
                 'message' => "You already have an assigned vehicle. Please use it or return it before booking a new one."
             ], 404);
         }
@@ -1439,7 +1439,7 @@ class AuthController extends Controller
         $RentalPrice = RentalPrice::where('product_id', $request->product_id)->where('subscription_type', $request->subscription_type)->first();
         if(!$RentalPrice){
             return response()->json([
-                'status' => false, 
+                'status' => false,
                  'message' => "This vehicle is not available for the selected duration."
             ], 404);
         }
@@ -1447,7 +1447,7 @@ class AuthController extends Controller
         $total_amount = $RentalPrice->deposit_amount+$RentalPrice->rental_amount;
         if($request->total_amount!=$total_amount){
             return response()->json([
-                'status' => false, 
+                'status' => false,
                   'message' => "The total amount does not match the required amount. Please check and try again."
             ], 404);
         }
@@ -1455,7 +1455,7 @@ class AuthController extends Controller
         DB::beginTransaction();
         try{
             $existing_order = Order::where('user_id', $user->id)->orderBy('id', 'DESC')->first();
-          
+
             if($existing_order){
                 if($existing_order->rent_status =="pending"){
                     $existing_order->update([
@@ -1487,7 +1487,7 @@ class AuthController extends Controller
                                     ? $InitiateSaleResponse['redirectURI'] . '?tranCtx=' . $InitiateSaleResponse['tranCtx']
                                     : null,
                             // 'data' => [
-                                
+
                             //     'showOTPCapturePage' => $InitiateSaleResponse['showOTPCapturePage'] ?? null,
                             //     'generateOTPURI'     => $InitiateSaleResponse['generateOTPURI'] ?? null,
                             //     'verifyOTPURI'       => $InitiateSaleResponse['verifyOTPURI'] ?? null,
@@ -1504,7 +1504,7 @@ class AuthController extends Controller
                         'response' => 'Failed to initiate transaction.',
                         'error' => $InitiateSaleResponse
                     ], 400);
-    
+
                 }elseif ($existing_order->rent_status == "ready to assign") {
                     return response()->json([
                         'status' => false,
@@ -1525,7 +1525,7 @@ class AuthController extends Controller
                         'status' => false,
                         'message' => 'Sorry! Your account is suspended. Please contact the administrator for assistance.',
                     ], 403);
-                } 
+                }
             }
             // else{
                 $order = Order::create([
@@ -1560,7 +1560,7 @@ class AuthController extends Controller
                                 ? $InitiateSaleResponse['redirectURI'] . '?tranCtx=' . $InitiateSaleResponse['tranCtx']
                                 : null,
                         // 'data' => [
-                            
+
                         //     'showOTPCapturePage' => $InitiateSaleResponse['showOTPCapturePage'] ?? null,
                         //     'generateOTPURI'     => $InitiateSaleResponse['generateOTPURI'] ?? null,
                         //     'verifyOTPURI'       => $InitiateSaleResponse['verifyOTPURI'] ?? null,
@@ -1590,7 +1590,7 @@ class AuthController extends Controller
     }
 
     public function bookingNewPayment(Request $request){
-       
+
         DB::beginTransaction();
         try{
             $status = $request->status;
@@ -1649,7 +1649,7 @@ class AuthController extends Controller
                                 $payment_item->type = 'deposit';
                                 $payment_item->amount = $order->deposit_amount;
                                 $payment_item->save();
-            
+
                                 // Rental Amount
                                 $payment_item = new PaymentItem;
                                 $payment_item->payment_id = $payment->id;
@@ -1660,13 +1660,13 @@ class AuthController extends Controller
                                 $payment_item->amount = $order->rental_amount;
                                 $payment_item->save();
                             }
-            
+
                             $order->payment_mode = "Online";
                             $order->payment_status = "completed";
                             $order->rent_status = "ready to assign";
                             $order->subscription_type = 'new_subscription_'.$order_type;
                             $order->save();
-            
+
                             DB::commit();
 
                             return response()->json([
@@ -1697,7 +1697,7 @@ class AuthController extends Controller
                     'status' => false,
                     'message' => "Payment failed. Please try again.",
                 ], 500);
-            }    
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -1710,7 +1710,7 @@ class AuthController extends Controller
     protected function bookingNewICICIPayment($merchantTxnNo,$txnID,$paymentMode,$paymentDateTime){
 
         $OrderMerchantNumber = OrderMerchantNumber::where('merchantTxnNo',$merchantTxnNo)->first();
-        
+
         if(!$OrderMerchantNumber){
             return response()->json([
                 'status' => false,
@@ -1803,13 +1803,13 @@ class AuthController extends Controller
                     'status' => true,
                     'message' => "Payment has been successfully created.",
                 ], 200);
-                   
+
             }else{
                 return response()->json([
                     'status' => false,
                     'message' => "Payment failed. Please try again.",
                 ], 500);
-            }    
+            }
         } catch (\Exception $e) {
             DB::rollBack();
             // dd($e->getMessage());
@@ -1824,12 +1824,12 @@ class AuthController extends Controller
     private function PaymentCaptured($razorpay_payment_id,$amount){
         $api_key = env('RAZORPAY_KEY_ID');
         $api_secret = env('RAZORPAY_KEY_SECRET');
-        
+
        $curl = curl_init();
-        
+
         // Razorpay API URL for Payment Fetch
         $url = "https://api.razorpay.com/v1/payments/$razorpay_payment_id";
-        
+
         // Curl Configuration
         curl_setopt_array($curl, [
             CURLOPT_URL => $url,
@@ -1840,7 +1840,7 @@ class AuthController extends Controller
                 "Content-Type: application/json"
             ],
         ]);
-        
+
         // Execute Curl Request
         $response = curl_exec($curl);
         $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
@@ -1871,7 +1871,7 @@ class AuthController extends Controller
         // dd($razorpay_payment_id, $order_id);s
         $api_key = env('RAZORPAY_KEY_ID');
         $api_secret = env('RAZORPAY_KEY_SECRET');
-        
+
         // Initialize Curl
         $curl = curl_init();
         $url = "https://api.razorpay.com/v1/payments/$razorpay_payment_id";
@@ -1902,7 +1902,7 @@ class AuthController extends Controller
 
                 // Create Payment Record
                 $payment = Payment::firstOrNew(['razorpay_payment_id' => $razorpay_payment_id]);
-               
+
                 $payment->order_id = $order->id;
                 $payment->user_id = $order->user_id;
                 $payment->order_type = 'new_subscription_' . $order_type;
@@ -1940,7 +1940,7 @@ class AuthController extends Controller
     public function bookNowRenewal(Request $request){
             $order_id = $request->order_id;
             $order_amount = $request->order_amount;
-            
+
             $order = Order::with('subscription')->find($order_id);
             if(!$order){
                 return response()->json([
@@ -1995,7 +1995,7 @@ class AuthController extends Controller
     }
     protected function bookingRenewICICIPayment($merchantTxnNo,$txnID,$paymentMode,$paymentDateTime){
         $OrderMerchantNumber = OrderMerchantNumber::where('merchantTxnNo',$merchantTxnNo)->first();
-        
+
         if(!$OrderMerchantNumber){
             return response()->json([
                 'status' => false,
@@ -2032,7 +2032,7 @@ class AuthController extends Controller
                     $payment->amount = $order->subscription ? $order->subscription->rental_amount : $order->rental_amount;
                     $payment->payment_date = now()->toDateTimeString();
                     $payment->save();
-        
+
                     if($payment){
                         // Rental Amount using updateOrCreate
                         $payment_item = PaymentItem::updateOrCreate(
@@ -2064,7 +2064,7 @@ class AuthController extends Controller
                         $order->rent_end_date = $endDate;
                         $order->subscription_type = 'renewal_subscription_' . $order_type;
                         $order->save();
-        
+
                         $asigned_vehicle = Stock::where('id',$assignRider->vehicle_id)->first();
                         if($asigned_vehicle){
                             if($asigned_vehicle->immobilizer_status=="IMMOBILIZE"){
@@ -2085,15 +2085,15 @@ class AuthController extends Controller
                             'end_date'     => $assignRider->end_date,
                             'created_at'   => now(),
                             'updated_at'   => now(),
-                        ]); 
-        
+                        ]);
+
                         $assignRider->start_date = $startDate;
                         $assignRider->end_date = $endDate;
                         $assignRider->status = "assigned";
                         $assignRider->save();
-        
+
                         DB::commit();
-                        
+
                         return response()->json([
                             'status' => true,
                             'message' => "Payment completed and subscription renewed successfully.",
@@ -2129,7 +2129,7 @@ class AuthController extends Controller
             "Accept: application/json",
             "Content-Type: application/json"
         ]);
-        
+
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload)); // Pass JSON body
 
         $vehiclesResponse = curl_exec($ch);
@@ -2147,12 +2147,12 @@ class AuthController extends Controller
             ]);
     }
     public function bookingRenewPayment(Request $request){
-       
+
         $user = $this->getAuthenticatedUser();
         if ($user instanceof \Illuminate\Http\JsonResponse) {
             return $user; // Return the response if the user is not authenticated
         }
-        
+
         $order_id = $request->order_id;
         $status = $request->status;
         $order_amount = $request->order_amount;
@@ -2212,7 +2212,7 @@ class AuthController extends Controller
                             $payment->razorpay_order_id = $razorpay_order_id;
                             $payment->razorpay_payment_id = $razorpay_payment_id;
                             $payment->razorpay_signature = $razorpay_signature;
-    
+
                             $payment->amount = $order->subscription ? $order->subscription->rental_amount : $order->rental_amount;
                             $payment->payment_date = now()->toDateTimeString();
                             $payment->save();
@@ -2228,11 +2228,11 @@ class AuthController extends Controller
                                 $payment_item->amount = $order->subscription ? $order->subscription->rental_amount : $order->rental_amount;
                                 $payment_item->duration = $order->subscription ? $order->subscription->duration : $order->rent_duration;
                                 $payment_item->save();
-                
+
                                 // Update Order
                                 $startDate = Carbon::parse($assignRider->end_date);
                                 $endDate = $startDate->copy()->addDays($payment_item->duration);
-                                
+
                                 $order->payment_mode = "Online";
                                 $order->payment_status = "completed";
                                 $order->rental_amount = $payment_item->amount;
@@ -2243,9 +2243,9 @@ class AuthController extends Controller
                                 $order->rent_end_date = $endDate;
                                 $order->subscription_type = 'renewal_subscription_'.$order_type;
                                 $order->save();
-                
-                                
-                
+
+
+
                                 DB::table('exchange_vehicles')->insert([
                                     'status'       => "renewal",
                                     'user_id'      => $assignRider->user_id,
@@ -2255,15 +2255,15 @@ class AuthController extends Controller
                                     'end_date'     => $assignRider->end_date,
                                     'created_at'   => now(),
                                     'updated_at'   => now(),
-                                ]); 
-                
+                                ]);
+
                                 $assignRider->start_date = $startDate;
                                 $assignRider->end_date = $endDate;
                                 $assignRider->status = "assigned";
                                 $assignRider->save();
-                
+
                                 DB::commit();
-                                
+
                                 return response()->json([
                                     'status' => true,
                                     'message' => "Payment completed and subscription renewed successfully.",
@@ -2294,7 +2294,7 @@ class AuthController extends Controller
                     'message' => "Payment failed. Please try again.",
                 ], 500);
             }
-            
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Payment Failed', [
@@ -2365,7 +2365,7 @@ class AuthController extends Controller
                 'rental_amount'=>$order->rental_amount,
                 'final_amount'=>$order->final_amount,
                 'payment_mode'=>$order->payment_mode,
-                
+
                 'payment_status'=>$order->payment_status,
                 'rent_duration'=>$order->rent_duration.' Days',
                 'rent_status' => ($order->vehicle && $order->vehicle->status === 'overdue') ? 'overdue' : $order->rent_status,
@@ -2379,17 +2379,17 @@ class AuthController extends Controller
                 'assigned_at' =>$order->vehicle?date('d-m-Y h:i A', strtotime($order->vehicle->assigned_at)):"N/A",
             ];
             return response()->json([
-                'status' => true, 
-                'data' => $data, 
+                'status' => true,
+                'data' => $data,
                 'message' => "You have a subscription."
             ], 200);
         }else{
             return response()->json([
-                'status' => false, 
+                'status' => false,
                 'message' => "No active subscription found."
             ], 404);
         }
-        
+
 
     }
 
@@ -2398,7 +2398,7 @@ class AuthController extends Controller
         if ($user instanceof \Illuminate\Http\JsonResponse) {
             return $user; // Return the response if the user is not authenticated
         }
-        
+
         // Check if the user exists
         if (!$user) {
             return response()->json([
@@ -2555,7 +2555,7 @@ class AuthController extends Controller
         } else {
             $status = 'pending';
         }
-        
+
 
         // Extract signer & document details if available
         $signer = $data['result']['signer'] ?? [];
@@ -2626,7 +2626,7 @@ class AuthController extends Controller
         if ($user instanceof \Illuminate\Http\JsonResponse) {
             return $user; // Return the response if the user is not authenticated
         }
-        
+
         // Check if the user exists
         if (!$user) {
             return response()->json([
@@ -2642,7 +2642,7 @@ class AuthController extends Controller
         $apiKey = env('ZOOP_APP_KEY');
         $redirect = secure_url("api/customer/digilocker/aadhar/thankyou");
         $response = secure_url("api/customer/digilocker/aadhar/webhook");
-        
+
         $data = [
             "docs" => ["ADHAR"],
             "purpose" => "KYC Verification",
@@ -2651,7 +2651,7 @@ class AuthController extends Controller
             "fast_track" => "Y",
             "pinless" => true
         ];
-         
+
          \Log::info("Redirect URL: " . $redirect);
         \Log::info("Response URL: " . $response);
         // Convert payload to JSON
@@ -2712,13 +2712,13 @@ class AuthController extends Controller
             ], $httpCode);
         }
     }
-    
+
     public function DigilockerFetch($request_id){
         $user = $this->getAuthenticatedUser();
         if ($user instanceof \Illuminate\Http\JsonResponse) {
             return $user; // Return the response if the user is not authenticated
         }
-        
+
         // Check if the user exists
         if (!$user) {
             return response()->json([
@@ -2776,8 +2776,8 @@ class AuthController extends Controller
         if(!$doc){
             return response()->json(['error' => 'not active request'], 404);
         }
-       
-        
+
+
         if (!$doc->raw_xml) {
             return response()->json(['error' => 'No XML data found'], 404);
         }
@@ -2797,7 +2797,7 @@ class AuthController extends Controller
         }
 
         $name = (string)$uidData->Poi['name'];
-        $uid = (string)$uidData['uid']; 
+        $uid = (string)$uidData['uid'];
         // $maskedUid = str_repeat('x', 8) . substr($uid, -4);
         $dob = (string)$uidData->Poi['dob'];
         $gender = (string)$uidData->Poi['gender'];
@@ -2827,7 +2827,7 @@ class AuthController extends Controller
             $store->document_type = 'Aadhar Card';
             $store->save();
         }
-        
+
 
         $photoBase64 = (string)$uidData->Pht;
         $photoDataUri = 'data:image/jpeg;base64,' . $photoBase64;
@@ -2859,13 +2859,13 @@ class AuthController extends Controller
 
         DB::beginTransaction();
         try {
-            
+
             foreach ($data['result'] as $doc) {
                 // \Log::info('Processing Document:', $doc);
                 if($doc['doctype']=="ADHAR"){
                     $issued = $doc['issued'] ?? null;
                     $uidDataXml = $doc['data_xml'] ?? null;
-                    
+
                     $saveData = [
                         'webhook_security_key' => $data['webhook_security_key'] ?? null,
                         'request_timestamp' => $data['request_timestamp'] ?? now(),
@@ -2977,7 +2977,7 @@ class AuthController extends Controller
         }else{
              $formattedAmount = number_format((float)$order->rental_amount, 2, '.', ''); // Always "100.00" format
         }
-       
+
 
         $data = [
             "merchantId"=> env('ICICI_MARCHANT_ID'),
@@ -3005,7 +3005,7 @@ class AuthController extends Controller
             $data["transactionType"],
             $data["txnDate"]
         ]);
-        
+
         $data['secureHash'] = hash_hmac('sha256', $hashKey, env('ICICI_MARCHANT_SECRET_KEY'));
 
         // Send request to Phicommerce using cURL
@@ -3067,7 +3067,7 @@ class AuthController extends Controller
         // Return JSON decoded response to mobile app
         return json_decode($response, true);
     }
-    
+
     public function iciciInitiateSaleConfirmed($merchantTxnNo){
         $OrderMerchantNumber = OrderMerchantNumber::where('merchantTxnNo',$merchantTxnNo)->first();
         if(!$OrderMerchantNumber){
@@ -3123,7 +3123,7 @@ class AuthController extends Controller
             // Return the parsed response
             return response()->json(json_decode($response, true));
         }
-        
+
     }
 
     public function ICICIThankyou(Request $request)
@@ -3202,11 +3202,11 @@ class AuthController extends Controller
             }else{
                 $message = $decodedResponse['message'] ?? 'Payment processed successfully.';
             }
-            
+
             return view('icici.thanks', compact('response','success_message','message'));
         }else{
              return view('icici.thanks', compact('response','success_message','message'));
-        } 
+        }
     }
 
 

@@ -2,6 +2,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\OrderController;
+use App\Http\Controllers\API\PaymentController;
 
 Route::prefix('customer')->group(function () {
     // User Registration Route
@@ -26,7 +27,7 @@ Route::prefix('customer')->group(function () {
         Route::get('product-details/{id}', [AuthController::class, 'ProductDetails']);
         Route::get('product/filter', [AuthController::class, 'ProductFilter']);
         Route::post('selling/query-request', [AuthController::class, 'SellingQueryRequest']);
-        
+
         // Change Password Route
         Route::post('changePassword', [AuthController::class, 'changePassword']);
         Route::post('update-profile', [AuthController::class, 'updateProfile']);
@@ -49,7 +50,7 @@ Route::prefix('customer')->group(function () {
 
         Route::get('order/existing-payment-type', [OrderController::class, 'ExistingPaymentType']);
         Route::post('apply/coupon', [OrderController::class, 'ApplyCoupon']);
-       
+
         Route::post('order/create', [OrderController::class, 'createOrder']);
         Route::get('payment/history', [AuthController::class, 'paymentHistory']);
         Route::post('current-location', [AuthController::class, 'CurrentLocation']);
@@ -64,7 +65,7 @@ Route::prefix('customer')->group(function () {
         // Digilocker
         Route::get('digilocker/aadhar/init', [AuthController::class, 'DigilockerInit']);
         Route::get('digilocker/aadhar/fetch/{request_id}', [AuthController::class, 'DigilockerFetch']);
-        
+
     });
     Route::get('digilocker/aadhar/download/{user_id}', [AuthController::class, 'generateAadhaarPdfFromXml'])->name('digilocker.aadhar.download');
 
@@ -72,18 +73,20 @@ Route::prefix('customer')->group(function () {
     Route::post('booking-new-icici-payment', [AuthController::class, 'bookingNewICICIPayment']);
     Route::post('booking-renew-payment', [AuthController::class, 'bookNowRenewal']);
     Route::get('esign/verification', [AuthController::class, 'EsignVerification']);
-    
-    
+
+
     Route::match(['GET', 'POST'], 'esign/thankyou', [AuthController::class, 'EsignThankyou']);
     Route::post('esign/webhook', [AuthController::class, 'webhookHandler']);
-    
+
     // Digilocker
-    
+
     Route::match(['GET', 'POST'], 'digilocker/aadhar/thankyou', [AuthController::class, 'DigilockerThankyou']);
 
     // Route::get('digilocker/aadhar/redirecting', [AuthController::class, 'redirectDigilockerThankyou'])->name('digilocker.aadhar.redirecting');
     Route::post('digilocker/aadhar/webhook', [AuthController::class, 'webhookDigilockerHandler']);
     Route::post('/icici/initiate-sale', [AuthController::class, 'iciciInitiateSale']);
     Route::match(['GET', 'POST'], 'icici/thankyou', [AuthController::class, 'ICICIThankyou']);
+    Route::post('payment/ipn', [PaymentController::class, 'handleIPN']);
+
     Route::get('/icici/initiate-sale/confirmed/{merchantTxnNo}', [AuthController::class, 'iciciInitiateSaleConfirmed']);
 });
