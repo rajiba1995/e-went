@@ -17,14 +17,30 @@ class PaymentController extends Controller
     {
         // Log all data for debugging
         Log::info('PhiCommerce IPN Received', $request->all());
+        $response = $request->all(); // Get all data
+         PaymentLog::create([
+            'gateway' => 'ICICI',
+            'transaction_id' => $response['txnID'] ?? null,
+            'merchant_txn_no' => $response['merchantTxnNo'] ?? null,
+            'response_payload' => json_encode($response),
+            'status' => $response['responseCode'] ?? null,
+            'message' => isset($response['respDescription']) ? $response['respDescription'] . '(authorized)' : null,
+        ]);
+        $merchantTxnNo = $response['merchantTxnNo'] ?? null;
 
+        $payment = Payment::where('icici_merchantTxnNo', $merchantTxnNo)->first();
+
+        if ($payment) {
+            $payment->icici_txnID = $response['txnID'] ?? null;
+            $payment->save();
+        }
         $OrderMerchantNumber = OrderMerchantNumber::where('merchantTxnNo', $merchantTxnNo)->first();
 
         $message = '';
         $success_message = '';
         // Case: Invalid merchantTxnNo
         if (!$OrderMerchantNumber) {
-            $message = 'No data found by this merchantTxnNo.';
+           // $message = 'No data found by this merchantTxnNo.';
             //return view('icici.thanks', compact('message'));
         }
         // Case: Payment success
@@ -41,6 +57,8 @@ class PaymentController extends Controller
                 'status' => $response['responseCode'] ?? null,
                 'message' => isset($response['respDescription']) ? $response['respDescription'] . '(completed)' : null,
             ]);
+                          Log::info('Pyment Successfull');
+
             if(!empty($OrderMerchantNumber->type) and $OrderMerchantNumber->type==='new'){
                  Log::error('bookingNewICICIPayment data', [
                     'merchantTxnNo'     => $merchantTxnNo,
@@ -48,26 +66,13 @@ class PaymentController extends Controller
                     'paymentMode'       => $response['paymentMode'] ?? null,
                     'paymentDateTime'   => $response['paymentDateTime'] ?? null,
                 ]);
-                $bookingResponse = $this->bookingNewICICIPayment(
-                    $merchantTxnNo,
-                    $response['txnID'],
-                    $response['paymentMode'],
-                    $response['paymentDateTime']
-                );
+
             }
             else{
 
-                Log::error('bookingRenewICICIPayment data', [
-                    'merchantTxnNo'     => $merchantTxnNo,
-                    'txnID'             => $response['txnID'] ?? null,
-                    'paymentMode'       => $response['paymentMode'] ?? null,
-                    'paymentDateTime'   => $response['paymentDateTime'] ?? null,
-                ]);
+
 
             }
-            // Extract message
-            Log::info("Payment Successfull");
-
 
         }
 
