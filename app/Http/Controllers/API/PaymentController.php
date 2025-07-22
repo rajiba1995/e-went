@@ -8,6 +8,7 @@ use App\Models\PaymentLog;
 use App\Models\Payment;
 use App\Models\PaymentItem;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 use App\Models\OrderMerchantNumber;
 
