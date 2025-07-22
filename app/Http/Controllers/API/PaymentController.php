@@ -20,6 +20,7 @@ class PaymentController extends Controller
     {
         // Log all data for debugging
         Log::info('PhiCommerce IPN Received', $request->all());
+        dd($request->all());
         $response = $request->all(); // Get all data
          PaymentLog::create([
             'gateway' => 'ICICI',

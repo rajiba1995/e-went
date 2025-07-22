@@ -86,7 +86,7 @@ Route::prefix('customer')->group(function () {
     Route::post('digilocker/aadhar/webhook', [AuthController::class, 'webhookDigilockerHandler']);
     Route::post('/icici/initiate-sale', [AuthController::class, 'iciciInitiateSale']);
     Route::match(['GET', 'POST'], 'icici/thankyou', [AuthController::class, 'ICICIThankyou']);
-    Route::post('payment/ipn', [PaymentController::class, 'handleIPN']);
+    Route::match(['GET', 'POST'],'payment/ipn', [PaymentController::class, 'handleIPN']);
 
     Route::get('/icici/initiate-sale/confirmed/{merchantTxnNo}', [AuthController::class, 'iciciInitiateSaleConfirmed']);
 });

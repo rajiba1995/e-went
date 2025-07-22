@@ -14,5 +14,6 @@ class VerifyCsrfToken extends Middleware
         'api/customer/digilocker/aadhar/thankyou', // ← Add this line
         'api/customer/icici/thankyou', // ← Add this line
         'internal-admin-login',
+        'api/customer/payment/ipn',
     ];
 }
