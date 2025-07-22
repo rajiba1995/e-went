@@ -2070,9 +2070,9 @@ class AuthController extends Controller
                             if($asigned_vehicle->immobilizer_status=="IMMOBILIZE"){
                                 $this->MobilizationRequest($assignRider->vehicle_id);
                             }else{
-                                $stock->immobilizer_status = "MOBILIZE";
-                                $stock->immobilizer_request_id = null;
-                                $stock->save();
+                                $asigned_vehicle->immobilizer_status = "MOBILIZE";
+                                $asigned_vehicle->immobilizer_request_id = null;
+                                $asigned_vehicle->save();
                             }
                         }
 
