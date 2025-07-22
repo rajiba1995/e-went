@@ -27,6 +27,7 @@ class PaymentController extends Controller
             $message = 'No data found by this merchantTxnNo.';
             //return view('icici.thanks', compact('message'));
         }
+        
         // Case: Payment success
         if (
             isset($response['respDescription']) &&
