@@ -1914,7 +1914,7 @@ class AuthController extends Controller
                 $payment->razorpay_payment_id = $razorpay_payment_id;
                 $payment->razorpay_signature = $responseData['notes']['razorpay_signature'] ?? '';
                 $payment->amount = ($responseData['amount'] ?? 0) / 100; // Convert to actual amount
-                $payment->payment_date = now();
+                $payment->payment_date = now()->toDateTimeString();
                 $payment->save();
                 DB::commit();
                 return [
