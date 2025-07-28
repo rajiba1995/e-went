@@ -1,3 +1,10 @@
+<?php
+function isValidDate($date, $format = 'Y-m-d') {
+    $d = DateTime::createFromFormat($format, $date);
+    return $d && $d->format($format) === $date;
+}
+
+?>
 <div class="row mb-4">
   <style>
     .avatar {
@@ -340,7 +347,7 @@
                               <div class="timeline-event">
                                 <div class="timeline-header mb-1">
                                   <h6 class="mb-0">{{ $step['title'] }}</h6>
-                                  @if(!empty($step['date']))
+                                  @if(!empty($step['date']) and isValidDate($step['date']))
                                     <small class="text-body-secondary">{{ \Carbon\Carbon::parse($step['date'])->format('d M Y h:i A') }}</small>
                                   @endif
                                 </div>
