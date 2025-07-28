@@ -42,6 +42,7 @@ class PaymentController extends Controller
     public function handleIPN(Request $request)
     {
       try {
+        dd($request->all());
          Log::info('PhiCommerce IPN Received', $request->all());
 
          $response = $request->all(); // Get all data
