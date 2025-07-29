@@ -315,7 +315,7 @@ class UserPaymentHistory extends Component
         ->when(!$this->start_date && $this->end_date, function ($query) {
             $query->whereDate('payment_date', '<=', $this->end_date);
         })
-        ->orderBy('id', 'DESC')
+        ->orderBy('payment_date', 'DESC')
         ->paginate(25);
          
         return view('livewire.admin.user-payment-history', [

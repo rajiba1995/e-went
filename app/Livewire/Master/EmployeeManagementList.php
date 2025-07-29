@@ -45,7 +45,7 @@ class EmployeeManagementList extends Component
         })
         ->orderBy('id', 'DESC')
         ->where('id', '!=', 1)
-        ->paginate(2);
+        ->paginate(20);
         return view('livewire.master.employee-management-list',[
             'employees'=>$employees,
         ]);

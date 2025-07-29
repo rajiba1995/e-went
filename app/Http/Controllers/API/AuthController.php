@@ -2988,7 +2988,6 @@ class AuthController extends Controller
             "customerEmailID"=> optional($order->user)->email??"testmail123@gmail.com",
             "transactionType"=> "SALE",
             "txnDate"=> date('YmdHis'),
-            // "returnURL"=> 'http://127.0.0.1:8000/api/customer/icici/thankyou',
             "returnURL"=> secure_url('api/customer/icici/thankyou'),
             "customerMobileNo"=> "91".optional($order->user)->mobile??"9876543210",
         ];

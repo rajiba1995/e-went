@@ -23,7 +23,8 @@ class RefundSummary extends Component
     use WithFileUploads; // ✅ REQUIRED for file uploads
     protected $paginationTheme = 'bootstrap';
     public $search = '';
-    public $remarks,$field,$document_type,$id,$over_due_days,$bom_parts=[],$balance_amnt=0,$parts_amnt,$order_id,
+    public $auto_early_fill = false;
+    public $remarks,$field,$document_type,$id,$over_due_days,$early_return_days = 0,$early_return_amount = 0,$bom_parts=[],$balance_amnt=0,$parts_amnt,$order_id,
     $over_due_amnts=0,$deduct_amounts=0,$per_day_amnt,$port_charges = 0,$reason,$damaged_part_image=[],$damage_parts=[],
     $return_condition,$isProgressModal=0,$status,$order_item_return_id,$isReturnModal=0,$damaged_part_logs=[],$damaged_part_images=[],$bom_part=[];
     public $active_tab = 1;
@@ -75,8 +76,10 @@ class RefundSummary extends Component
     public function PartialPayment($order_id,$customerId)
     {
         $this->reset(['BomParts','selected_order','selectedCustomer','order_item_return_id','bom_part',
-        'over_due_days','port_charges','over_due_amnts','deduct_amounts','balance_amnt']);
+        'over_due_days','port_charges','over_due_amnts','deduct_amounts','balance_amnt','early_return_days','early_return_amount','auto_early_fill']);
+
         $this->selected_order = Order::find($order_id);
+
         $this->BomParts = BomPart::where('product_id', $this->selected_order->product_id)->orderBy('part_name','ASC')->get();
         $this->selectedCustomer = User::find($customerId);
         $this->isModalOpen = true;
@@ -154,6 +157,36 @@ class RefundSummary extends Component
         $this->isProgressModal = 1;
 
     }
+    public function setEarlyReturnDays()
+    {
+        $this->reset(['early_return_days','early_return_amount']);
+
+        if ($this->auto_early_fill) {
+            $rentEnd = \Carbon\Carbon::parse($this->selected_order->rent_end_date);
+            $returnDate = \Carbon\Carbon::parse($this->selected_order->return_date);
+
+            $days = round(abs($rentEnd->diffInDays($returnDate, false))); // can be 0 if same day
+            $this->early_return_days = $days;
+
+            if ($days == 0) {
+                $this->early_return_amount = 0;
+            } else {
+                $this->per_day_amnt = $this->selected_order->rent_duration > 0
+                    ? $this->selected_order->rental_amount / $this->selected_order->rent_duration
+                    : 0;
+
+                $this->early_return_amount = round($this->per_day_amnt * $days, 2);
+            }
+
+        } else {
+            // Uncheck = reset both
+            $this->early_return_days = 0;
+            $this->early_return_amount = 0;
+        }
+
+        $this->calculateAmount();
+    }
+
      public function closeProgressModal()
     {
         $this->reset(['reason','status']);
@@ -338,7 +371,6 @@ class RefundSummary extends Component
             // Only include aggregatorID if needed
             // 'aggregatorID'     => $aggregatorID,
         ];
-
         // Make cURL request
         $ch = curl_init(env('ICICI_PAYMENT_CHECK_STATUS_BASH_URL'));
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -428,7 +460,6 @@ class RefundSummary extends Component
             ->where('rent_status', 'returned')
             ->orderByDesc('id')
             ->paginate(20);
-
        $in_progress_data = OrderItemReturn::with('order_item')
         ->when($this->search, function ($query) {
             $searchTerm = '%' . $this->search . '%';
@@ -546,7 +577,6 @@ class RefundSummary extends Component
       }
       $this->parts_amnt=$totalAmnt;
       $this->calculateAmount();
-
     }
     public function calculateAmount()
     {
@@ -557,8 +587,9 @@ class RefundSummary extends Component
         $this->deduct_amounts = ceil($parts_amnt + $over_due_amnts + $port_charges);
 
         $deposit_amount = (float) $this->selected_order->deposit_amount;
+        $early_return_amount = (float) $this->early_return_amount;
 
-        $this->balance_amnt = $deposit_amount - $this->deduct_amounts;
+         $this->balance_amnt = $deposit_amount + $early_return_amount - $this->deduct_amounts;
 
         //   $this->deduct_amounts=ceil($this->parts_amnt+$this->over_due_amnts+$this->port_charges);
         //   $this->balance_amnt=($this->selected_order->deposit_amount-$this->deduct_amounts);
@@ -589,6 +620,8 @@ class RefundSummary extends Component
                     'over_due_amnt' => $this->over_due_amnts,
                     'user_id' => $this->selected_order->user_id,
                     'port_charges' => $this->port_charges,
+                    'early_return_days' => $this->early_return_days,
+                    'early_return_amount' => $this->early_return_amount,
                 ]);
             } else {
                 $order = Order::where('id',$this->selected_order->id)->first();
@@ -603,7 +636,9 @@ class RefundSummary extends Component
                     'over_due_days' => $this->over_due_days,
                     'over_due_amnt' => $this->over_due_amnts,
                     'user_id' => $this->selected_order->user_id,
-                    'port_charges' => $this->port_charges
+                    'port_charges' => $this->port_charges,
+                    'early_return_days' => $this->early_return_days,
+                    'early_return_amount' => $this->early_return_amount,
                 ]);
             }
 
@@ -667,78 +702,82 @@ class RefundSummary extends Component
     session()->flash('message', 'Status has been changed Successfully !');
 
     }
-public function setPortCharges()
-    {
-
-       \Log::info('Port Charges updated:', ['value' => $this->port_charges]);
-
-        // Your calculation or database logic goes here
-        $this->calculateAmount();
-
-    }
-     public function updated($propertyName)
-    {
-        // Run validation whenever any property is updated
-        $this->validateOnly($propertyName);
-    }
-    public function viewReturnModal($order_id,$order_item_id,$customerId)
-    {
-        $this->selected_order = Order::find($order_id);
-        $this->selectedCustomer = User::find($customerId);
-        $return = OrderItemReturn::findOrFail($order_item_id);
-
-        $this->damaged_part_logs=DamagedPartLog::with('bom_part')->where('order_item_id',$order_id)->get();
-        if(!empty($return->damaged_part_image))
+    public function setPortCharges()
         {
-        $this->damaged_part_images=explode(",",$return->damaged_part_image);
+
+        \Log::info('Port Charges updated:', ['value' => $this->port_charges]);
+
+            // Your calculation or database logic goes here
+            $this->calculateAmount();
 
         }
-        $this->isReturnModal=1;
-    }
-    public function closeReturnModal()
-    {
-      $this->isReturnModal=0;
-    }
-     public function editReturnModal($return_id)
-    {
-        $this->reset(['BomParts','selected_order','selectedCustomer','order_item_return_id','bom_part','over_due_days',
-        'port_charges','over_due_amnts','deduct_amounts','return_condition','damaged_part_images']);
-        $this->order_item_return_id=$return_id;
-        $return = OrderItemReturn::findOrFail($this->order_item_return_id);
-        $order_id=$return->order_item_id;
-        $customerId=$return->user_id;
-        $this->selected_order = Order::find($order_id);
+        public function updated($propertyName)
+        {
+            // Run validation whenever any property is updated
+            $this->validateOnly($propertyName);
+        }
+        public function viewReturnModal($order_id,$order_item_id,$customerId)
+        {
+            $this->selected_order = Order::find($order_id);
+            $this->selectedCustomer = User::find($customerId);
+            $return = OrderItemReturn::findOrFail($order_item_id);
+
+            $this->damaged_part_logs=DamagedPartLog::with('bom_part')->where('order_item_id',$order_id)->get();
+            if(!empty($return->damaged_part_image))
+            {
+            $this->damaged_part_images=explode(",",$return->damaged_part_image);
+
+            }
+            $this->isReturnModal=1;
+        }
+        public function closeReturnModal()
+        {
+        $this->isReturnModal=0;
+        }
+        public function editReturnModal($return_id)
+        {
+            $this->reset(['BomParts','selected_order','selectedCustomer','order_item_return_id','bom_part','over_due_days',
+            'port_charges','over_due_amnts','deduct_amounts','return_condition','damaged_part_images']);
+
+            $this->order_item_return_id=$return_id;
+            $return = OrderItemReturn::findOrFail($this->order_item_return_id);
+            $order_id=$return->order_item_id;
+            $customerId=$return->user_id;
+            $this->selected_order = Order::find($order_id);
+            $this->order_id=$order_id;
+            $this->BomParts = BomPart::where('product_id', $this->selected_order->product_id)->orderBy('part_name','ASC')->get();
+            $this->selectedCustomer = User::find($customerId);
+
+            $this->damaged_part_logs=DamagedPartLog::where('order_item_id',$order_id)->get();
+            foreach($this->damaged_part_logs as $damaged_part)
+            {
+                $this->bom_part[]=$damaged_part->bom_part_id;
+            }
+            $this->bomPartChanged($this->bom_part);
+
+            if(!empty($return->damaged_part_image))
+            {
+                $this->damaged_part_images=explode(",",$return->damaged_part_image);
+            }
+            $this->over_due_days=$return->over_due_days;
+            $this->over_due_amnts=$return->over_due_amnt;
+            $this->early_return_days = $return->early_return_days;
+            $this->early_return_amount = $return->early_return_amount;
+            $this->port_charges=$return->port_charges;
+            $this->return_condition=$return->return_condition;
+            $this->isModalOpen = true;
+            $this->auto_early_fill = $this->early_return_days>0?true:false;
+            
+            $this->calculateAmount();
+            $this->dispatch('bind-chosen',[]);
+
+
+        }
+    public function openFullRefundConfirm($order_id)
+        {
         $this->order_id=$order_id;
-        $this->BomParts = BomPart::where('product_id', $this->selected_order->product_id)->orderBy('part_name','ASC')->get();
-        $this->selectedCustomer = User::find($customerId);
-
-        $this->damaged_part_logs=DamagedPartLog::where('order_item_id',$order_id)->get();
-        foreach($this->damaged_part_logs as $damaged_part)
-        {
-           $this->bom_part[]=$damaged_part->bom_part_id;
-        }
-        if(!empty($return->damaged_part_image))
-        {
-        $this->damaged_part_images=explode(",",$return->damaged_part_image);
-        }
-        $this->over_due_days=$return->over_due_days;
-        $this->over_due_amnts=$return->over_due_amnt;
-        $this->port_charges=$return->port_charges;
-        $this->return_condition=$return->return_condition;
-        $this->isModalOpen = true;
+        $this->selected_order = Order::find($order_id);
         $this->calculateAmount();
-        $this->dispatch('bind-chosen',[]);
-
-
+        $this->dispatch('openfullrefund',[]);
+        }
     }
-   public function openFullRefundConfirm($order_id)
-    {
-
-      $this->order_id=$order_id;
-      $this->selected_order = Order::find($order_id);
-      $this->calculateAmount();
-      $this->dispatch('openfullrefund',[]);
-
-    }
-
-}

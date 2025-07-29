@@ -234,7 +234,7 @@
       </ul>
     </li>
      @endif
- @if (hasPermissionByParent('bom_part'))
+ {{-- @if (hasPermissionByParent('bom_part')) --}}
    <li class="menu-item {{ (request()->is('admin/bom-parts*')) ? 'open' : '' }}" style="">
       <a href="#" class="menu-link menu-toggle waves-effect" target="_blank">
         <i class="menu-icon tf-icons ri-store-line"></i>
@@ -248,8 +248,8 @@
         </li>
       </ul>
     </li>
-  @endif
-  @if (hasPermissionByParent('selling_query'))
+  {{-- @endif --}}
+  {{-- @if (hasPermissionByParent('selling_query')) --}}
    <li class="menu-item {{ (request()->is('admin/selling-query*')) ? 'open' : '' }}" style="">
       <a href="#" class="menu-link menu-toggle waves-effect" target="_blank">
         <i class="menu-icon tf-icons ri-store-line"></i>
@@ -263,7 +263,7 @@
         </li>
       </ul>
     </li>
-  @endif
+  {{-- @endif --}}
 
 
     <div class="ps__rail-x" style="left: 0px; bottom: 0px;">

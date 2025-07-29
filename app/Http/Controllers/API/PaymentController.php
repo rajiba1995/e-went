@@ -42,18 +42,23 @@ class PaymentController extends Controller
     public function handleIPN(Request $request)
     {
       try {
-        dd($request->all());
-         Log::info('PhiCommerce IPN Received', $request->all());
+        //  Log::info('PhiCommerce IPN Received', $request->all());
 
-         $response = $request->all(); // Get all data
-         PaymentLog::create([
-            'gateway' => 'ICICI',
-            'transaction_id' => $response['txnID'] ?? null,
-            'merchant_txn_no' => $response['merchantTxnNo'] ?? null,
-            'response_payload' => json_encode($response),
-            'status' => $response['responseCode'] ?? null,
-            'message' => isset($response['respDescription']) ? $response['respDescription'] . '(authorized)' : null,
-        ]);
+        $response = $request->all(); // Get all data
+        if (!empty($response)) {
+            Log::info('PhiCommerce IPN Received', $response);
+
+            PaymentLog::create([
+                'gateway' => 'ICICI',
+                'transaction_id' => $response['txnID'] ?? null,
+                'merchant_txn_no' => $response['merchantTxnNo'] ?? null,
+                'response_payload' => json_encode($response),
+                'status' => $response['responseCode'] ?? null,
+                'message' => isset($response['respDescription']) ? $response['respDescription'] . ' (authorized)' : null,
+            ]);
+        } else {
+            Log::warning('PhiCommerce IPN Received with empty payload');
+        }
         $merchantTxnNo = $response['merchantTxnNo'] ?? null;
 
         $payment = Payment::where('icici_merchantTxnNo', $merchantTxnNo)->first();

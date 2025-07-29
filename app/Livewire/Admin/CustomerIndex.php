@@ -225,6 +225,7 @@ class CustomerIndex extends Component
             ->where('is_verified', 'verified')
             ->orderBy('id', 'DESC')
             ->paginate(20,['*'],'verified_users');
+
         $rejected_users = User::with('doc_logs')
             ->when($this->search, function ($query) {
                 $searchTerm = '%' . $this->search . '%';
@@ -237,7 +238,8 @@ class CustomerIndex extends Component
             })
             ->where('is_verified', 'rejected')
             ->orderBy('id', 'DESC')
-            ->paginate(20,['*','rejected_users']);
+            ->paginate(20);
+
         return view('livewire.admin.customer-index', [
             'unverified_users' => $unverified_users,
             'verified_users' => $verified_users,

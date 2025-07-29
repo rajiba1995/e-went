@@ -404,6 +404,13 @@
                       'bg-label-secondary', 'bg-label-danger',
                       'bg-label-warning'];
                       $colorClass = $colors[$in_processed_index % count($colors)];
+
+                      $icici_payment = App\Models\Payment::where('order_id', $in_processed->order_item_id)
+                        ->whereHas('paymentItem', function ($query) {
+                            $query->where('type', 'deposit');
+                        })
+                        ->select('id', 'order_id', 'icici_txnID') // 'icici_txnID' is assumed to be the txn ID
+                        ->first();
                       @endphp
                       <tr>
                         <td class="align-middle text-center">{{ $in_processed_index + $in_processed_data->firstItem() }}</td>
@@ -452,16 +459,24 @@
 
                         </td>
                         <td class="align-middle text-end px-4">
+                            
+                            @if(!empty($icici_payment->icici_txnID))
+                                <button class="btn btn-xs btn-primary waves-effect waves-light mt-2"
+                                    wire:click="PaymentConfimed({{ $in_processed->id }})">
+                                    Mark as Confirmed
+                                </button>
+                            @else
+                                <div class="alert alert-warning mt-2 p-1 mb-0" style="font-size: 12px;">
+                                    ⚠️ This payment is not eligible for refund — not processed via ICICI.
+                                </div>
+                            @endif
+                            <br>
                             @if($in_processed->refund_category==="deposit_partial_refund")
                                 <button class="btn btn-xs btn-dark waves-effect waves-light zero_payment mt-2"
                                     wire:click="editReturnModal({{ $in_processed->id }})">
                                     <i class="ri-pencil-line fs-6"></i>
                                 </button>
                             @endif
-                          <button class="btn btn-xs btn-primary waves-effect waves-light mt-2"
-                            wire:click="PaymentConfimed({{ $in_processed->id }})">
-                            Mark as Confirmed
-                          </button>
                           <button class="btn btn-xs btn-danger waves-effect waves-light mt-2" wire:click="ConfirmCancelRequest({{ $in_processed->id }})">
                             Cancel
                           </button>
@@ -800,7 +815,45 @@
           </ul>
         </div>
         <div class="tab-content p-0 mt-6">
+          @php
+              $rentStart = Carbon\Carbon::parse($selected_order->rent_start_date);
+              $rentEnd = Carbon\Carbon::parse($selected_order->rent_end_date);
+              $returnDate = Carbon\Carbon::parse($selected_order->return_date);
+
+              $diffInDays = $rentEnd->diffInDays($returnDate, false); // false = allow negative
+            @endphp
           <div class="tab-pane fade active show" id="navs-justified-overview" role="tabpanel">
+            
+
+          <div class="col-12 mb-3">
+
+              <!-- Ride Info Alert -->
+              <div class="alert alert-primary" role="alert">
+                  <strong>Ride Info:</strong> Last ride starts on 
+                  <strong>{{ $rentStart->format('d M Y') }}</strong> and ends on 
+                  <strong>{{ $rentEnd->format('d M Y') }}</strong>.
+              </div>
+
+              <!-- Return Date Alert with Comparison -->
+              @if($diffInDays > 0)
+                  <div class="alert alert-success" role="alert">
+                      <strong>Returned Late:</strong> Return date is <strong>{{ $returnDate->format('d M Y') }}</strong>,
+                      which is <strong>{{ round($diffInDays) }} day(s)</strong> <span class="text-danger">after</span> the rent end date.
+                  </div>
+              @elseif($diffInDays < 0)
+                  <div class="alert alert-warning" role="alert">
+                      <strong>Returned Early:</strong> Return date is <strong>{{ $returnDate->format('d M Y') }}</strong>,
+                      which is <strong>{{ round(abs($diffInDays)) }} day(s)</strong> <span class="text-success">before</span> the rent end date.
+                  </div>
+              @else
+                  <div class="alert alert-info" role="alert">
+                      <strong>Returned On Time:</strong> Return date is exactly on <strong>{{ $returnDate->format('d M Y') }}</strong>.
+                  </div>
+              @endif
+
+          </div>
+
+
             <div class="col-12 mb-3" wire:ignore>
               <label for="product_id" class="form-label">BOM Parts <span class="text-danger">*</span></label>
               <select class="form-control" id="bom_part" wire:model="bom_part" data-placeholder="Please select..."
@@ -812,6 +865,7 @@
                 @endforeach
               </select>
             </div>
+            @if($diffInDays >= 1)
             <div class="col-12 mb-3">
               <label for="product_id" class="form-label">Overdue Days <span class="text-danger">*</span></label>
               <select class="form-select" id="over_due_days" wire:model="over_due_days"
@@ -821,18 +875,40 @@
                   @endfor
               </select>
             </div>
+            @endif
             <div class="col-12 mb-3">
               <label for="product_id" class="form-label">Port Charge </label>
               <input type="text" class="form-control" id="port_charges" wire:model="port_charges"
                 oninput="debounceUpdate()">
 
             </div>
+            @if($diffInDays >= 1)
             <div class="col-12 mb-3">
               <label for="product_id" class="form-label">Overdue Amount @if($over_due_days>0) <span class="text-danger">
                   ({{$per_day_amnt}}*{{$over_due_days}} Days)</span> @endif</label>
               <input type="text" class="form-control" readonly wire:model="over_due_amnts">
 
             </div>
+            @endif
+            @if($diffInDays < 0)
+              <div class="col-12 mb-3">
+                  <label for="early_return_days" class="form-label">Returned Early Days 
+                    @if($early_return_days>0) 
+                    @php
+                        $per_day_amount = $early_return_amount/$early_return_days;
+                    @endphp<span class="text-danger">
+                  ({{$per_day_amount}}*{{$early_return_days}} Days)</span> @endif
+                </label>
+                  <div class="input-group">
+                      <input type="number" class="form-control" id="early_return_days" wire:model="early_return_days" min="1" readonly>
+                      <div class="input-group-text">
+                          <input class="form-check-input mt-0" type="checkbox" wire:model="auto_early_fill"
+                              wire:change="setEarlyReturnDays">
+                          <span class="ms-2">Auto-fill early days ({{ round(abs($diffInDays)) }})</span>
+                      </div>
+                  </div>
+              </div>
+            @endif
             <div class="col-12 mb-3">
               <label for="product_id" class="form-label">Total Deducted Amount </label>
               <input type="text" class="form-control" wire:model="deduct_amounts" readonly>
@@ -843,7 +919,6 @@
               <input type="text" class="form-control  @error('balance_amnt') is-invalid @enderror"
                 wire:model="balance_amnt" readonly>
               @error('balance_amnt') <span class="text-danger">{{ $message }}</span> @enderror
-
 
             </div>
             <div class="col-12 mb-3">
